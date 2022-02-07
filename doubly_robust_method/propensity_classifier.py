@@ -12,16 +12,16 @@ from sklearn import metrics
 def categorical_transformer(X,cat_cols,cont_cols):
     c = OrderedCategoricalLong()
     for el in cat_cols:
-        X[el] = c.fit_transform(X[el])
+        X[:,el] = c.fit_transform(X[:,el])
     cat_cols = cat_cols
     if cat_cols:
-        unique_cat_cols = X[cat_cols].max(axis=0).tolist()
+        unique_cat_cols = X[:,cat_cols].max(axis=0).tolist()
         unique_cat_cols = [el + 1 for el in unique_cat_cols]
     else:
         unique_cat_cols = []
     X_cont=X[cont_cols]
     X_cat=X[cat_cols]
-    return X_cont,X_cat,cont_cols
+    return X_cont,X_cat,unique_cat_cols
 class general_custom_dataset(Dataset):
     def __init__(self,X,y,x_cat=[]):
         super(general_custom_dataset, self).__init__()
@@ -30,7 +30,9 @@ class general_custom_dataset(Dataset):
     def split(self,X,y,mode='train',X_cat=[]):
         setattr(self,f'{mode}_y', torch.from_numpy(y).float())
         setattr(self, f'{mode}_X', torch.from_numpy(X).float())
-        if X_cat:
+        self.cat_cols = False
+        if not isinstance(X_cat,list):
+            self.cat_cols = True
             setattr(self, f'{mode}_cat_X', torch.from_numpy(X_cat.astype('int64').values).long())
 
     def set(self,mode='train'):
@@ -178,12 +180,19 @@ class classifier_binary(torch.nn.Module):
         super(classifier_binary, self).__init__()
         self.init_covariate_net(d_in_x,layers_x,cat_size_list,transformation,dropout)
 
+    def identity_transform(self, x):
+        return x
+
     def init_covariate_net(self,d_in_x,layers_x,cat_size_list,transformation,dropout):
         module_list = [nn_node(d_in=d_in_x,d_out=layers_x[0],cat_size_list=cat_size_list,transformation=transformation,dropout=dropout)]
         for l_i in range(1,len(layers_x)):
             module_list.append(nn_node(d_in=layers_x[l_i-1],d_out=layers_x[l_i],cat_size_list=[],transformation=transformation,dropout=dropout))
         self.covariate_net = multi_input_Sequential(*module_list)
-        self.final_layer = torch.nn.Linear(layers_x[-1],1)
+
+        if len(layers_x)==0:
+            self.final_layer = self.identity_transform
+        else:
+            self.final_layer = torch.nn.Linear(layers_x[-1],1)
 
     def forward(self,x_cov,x_cat=[]):
         return self.final_layer(self.covariate_net(x_cov,x_cat))
@@ -201,20 +210,23 @@ class propensity_estimator():
         self.pos_count = np.sum(T_tr)
         self.neg_count = np.sum(T_tr==0)
         self.pos_weight = self.neg_count/self.pos_count
-
+        self.bs=bs
         self.dataset_val = general_custom_dataset(X_val,T_val,X_cat_val)
         self.dataloader_tr = custom_dataloader(dataset=self.dataset_tr,batch_size=bs,shuffle=True)
         self.dataloader_val = custom_dataloader(dataset=self.dataset_val,batch_size=bs,shuffle=False)
 
-    def predict(self,X_test,X_cat_test):
-        pass
-
+    def predict(self,X_test,T_tst,X_cat_test):
+        dataset = general_custom_dataset(X_test,T_tst,X_cat_test)
+        dataloader = custom_dataloader(dataset=dataset, batch_size=self.bs, shuffle=False)
+        preds,_= self.val_loop(dataloader)
+        return preds
     def score_auc(self,pred_val,T_val):
         pred = pred_val.cpu().numpy()
         y = T_val.cpu().numpy()
         fpr, tpr, thresholds = metrics.roc_curve(y, pred, pos_label=1)
         auc = metrics.auc(fpr, tpr)
         return auc
+
     def train_loop(self,opt,obj):
         self.model.train()
         for i,x,x_cat,y in enumerate(self.dataloader_tr):
@@ -236,7 +248,7 @@ class propensity_estimator():
             if not isinstance(x_cat,list):
                 x_cat=x_cat.to(self.device)
             with torch.no_grad():
-                y_pred = self.model(x,x_cat)
+                y_pred = self.model.predict(x,x_cat)
             y_s.append(y)
             y_preds.append(y_pred)
         return torch.cat(y_preds),torch.cat(y_s)

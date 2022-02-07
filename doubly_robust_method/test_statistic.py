@@ -1,9 +1,9 @@
 import torch
 from kernels import *
 from kme import *
-genera_ker_obj =Kernel()
+general_ker_obj =Kernel()
 class counterfactual_me_test():
-    def __init__(self,X,Y,e,T,kme_object,permute_e=False,permutations=250,device='cuda:0'):
+    def __init__(self,X,Y,e,T,kme_1,kme_0,permute_e=False,permutations=250,device='cuda:0'):
         self.permutations = permutations
         self.X=X.to(device)
         self.n= Y.shape[0]
@@ -11,18 +11,19 @@ class counterfactual_me_test():
         self.e =e.to(device)
         self.T_1 = T.to(device)
         self.T_0 =1-T
-        self.kme=kme_object
+        self.kme_1=kme_1
+        self.kme_0=kme_0
         self.permute_e = permute_e
         self.create_all_weights(self.e)
         self.kernel = RBFKernel(self.Y).to(device)
-        self.ls =genera_ker_obj.get_median_ls(Y,Y)
+        self.ls =general_ker_obj.get_median_ls(Y, Y)
         self.kernel._set_lengthscale(self.ls)
         self.L = self.kernel.evaluate()
         self.ref_stat = self.calculate_test_statistic(self.L,self.e)
 
     def calculate_psi_omega(self):
-        self.psi_1 = self.kme.get_psi_1(self.X, self.psi_1_weight)
-        self.psi_0 = self.kme.get_psi_0(self.X, self.psi_0_weight)
+        self.psi_1 = self.kme_1.get_psi(self.X, self.psi_1_weight)
+        self.psi_0 = self.kme_0.get_psi(self.X, self.psi_0_weight)
         self.omega = self.psi_1+self.T_0_weight-self.psi_0-self.T_1_weight
 
     def calculate_test_statistic(self,L,e=None):
