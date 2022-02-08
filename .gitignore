@@ -2,7 +2,11 @@
 *.log
 notes/gformulakerneltest.pdf
 *.png
+*.npy
+*.pickle
+*.pkl
 g_env/*
+*.csv
 *.json
 *.py~
 *.xml

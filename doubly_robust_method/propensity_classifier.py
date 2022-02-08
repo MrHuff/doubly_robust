@@ -106,7 +106,7 @@ class custom_dataloader():
         self.dataset = dataset
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.n = self.dataset.X.shape[0]
+        self.n = self.dataset.train_X.shape[0]
         self.len=self.n//batch_size+1
     def __iter__(self):
         return chunk_iterator(X =self.dataset.X,
@@ -189,34 +189,37 @@ class classifier_binary(torch.nn.Module):
             module_list.append(nn_node(d_in=layers_x[l_i-1],d_out=layers_x[l_i],cat_size_list=[],transformation=transformation,dropout=dropout))
         self.covariate_net = multi_input_Sequential(*module_list)
 
-        if len(layers_x)==0:
+        if len(layers_x)==1:
             self.final_layer = self.identity_transform
         else:
             self.final_layer = torch.nn.Linear(layers_x[-1],1)
 
     def forward(self,x_cov,x_cat=[]):
-        return self.final_layer(self.covariate_net(x_cov,x_cat))
+        return self.final_layer(self.covariate_net((x_cov,x_cat)))
 
     def predict(self,x_cov,x_cat=[]):
-        return torch.sigmoid(self.final_layer(self.covariate_net(x_cov,x_cat)))
+        return torch.sigmoid(self.final_layer(self.covariate_net((x_cov,x_cat))))
 
 class propensity_estimator():
     def __init__(self,X_tr,T_tr,X_val,T_val,nn_params,bs=100,epochs=100,device='cuda:0',X_cat_tr=[],X_cat_val=[]):
         self.epochs =epochs
         self.device=device
         self.model = classifier_binary(**nn_params).to(self.device)
-        self.dataset_tr = general_custom_dataset(X_tr,T_tr,X_cat_tr)
         self.n = X_tr.shape[0]
         self.pos_count = np.sum(T_tr)
         self.neg_count = np.sum(T_tr==0)
-        self.pos_weight = self.neg_count/self.pos_count
+        self.pos_weight = torch.tensor(self.neg_count/self.pos_count).float()
         self.bs=bs
+        self.dataset_tr = general_custom_dataset(X_tr,T_tr,X_cat_tr)
+        self.dataset_tr.set('train')
         self.dataset_val = general_custom_dataset(X_val,T_val,X_cat_val)
+        self.dataset_val.set('train')
         self.dataloader_tr = custom_dataloader(dataset=self.dataset_tr,batch_size=bs,shuffle=True)
         self.dataloader_val = custom_dataloader(dataset=self.dataset_val,batch_size=bs,shuffle=False)
 
     def predict(self,X_test,T_tst,X_cat_test):
         dataset = general_custom_dataset(X_test,T_tst,X_cat_test)
+        dataset.set('train')
         dataloader = custom_dataloader(dataset=dataset, batch_size=self.bs, shuffle=False)
         preds,_= self.val_loop(dataloader)
         return preds
@@ -229,21 +232,22 @@ class propensity_estimator():
 
     def train_loop(self,opt,obj):
         self.model.train()
-        for i,x,x_cat,y in enumerate(self.dataloader_tr):
+        for i,(x,x_cat,y) in enumerate(self.dataloader_tr):
             x=x.to(self.device)
+            y=y.to(self.device)
             if not isinstance(x_cat,list):
                 x_cat=x_cat.to(self.device)
             y_pred = self.model(x,x_cat)
-            obj(y_pred,y)
+            loss=obj(y_pred,y)
             opt.zero_grad()
-            obj.backwards()
+            loss.backward()
             opt.step()
 
     def val_loop(self,dl):
         self.model.eval()
         y_s = []
         y_preds =[]
-        for i,x,x_cat,y in enumerate(dl):
+        for i,(x,x_cat,y) in enumerate(dl):
             x=x.to(self.device)
             if not isinstance(x_cat,list):
                 x_cat=x_cat.to(self.device)
@@ -264,6 +268,8 @@ class propensity_estimator():
             self.train_loop(opt,objective)
             y_preds,ys = self.val_loop(self.dataloader_val)
             auc = self.score_auc(y_preds,ys)
+            print(auc)
+
             if auc> self.best:
                 self.best =auc
                 counter=0

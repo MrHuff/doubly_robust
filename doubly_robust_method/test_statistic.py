@@ -1,7 +1,8 @@
 import torch
-from kernels import *
-from kme import *
+from doubly_robust_method.kernels import *
+from doubly_robust_method.kme import *
 general_ker_obj =Kernel()
+
 class counterfactual_me_test():
     def __init__(self,X,Y,e,T,kme_1,kme_0,permute_e=False,permutations=250,device='cuda:0'):
         self.permutations = permutations

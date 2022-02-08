@@ -1,6 +1,6 @@
 import numpy as np
 
-from kernels import *
+from doubly_robust_method.kernels import *
 import tqdm
 import torch
 class kme_model(torch.nn.Module):
@@ -10,16 +10,16 @@ class kme_model(torch.nn.Module):
 
         # self.T= T_tr.to(device)
         # self.T_0 =1-self.T_1
-        self.X_tr = X_tr[T_tr==treatment_const].to(device)
-        self.Y_tr = Y_tr[T_tr==treatment_const].to(device)
+        self.X_tr = torch.from_numpy(X_tr[T_tr.squeeze()==treatment_const,:]).to(device)
+        self.Y_tr = torch.from_numpy(Y_tr[T_tr.squeeze()==treatment_const]).to(device)
 
         self.n=X_tr.shape[0]
 
-        self.X_val = X_val[T_val==treatment_const].to(device)
-        self.Y_val = Y_val[T_val==treatment_const].to(device)
+        self.X_val = torch.from_numpy(X_val[T_val.squeeze()==treatment_const,:]).to(device)
+        self.Y_val = torch.from_numpy(Y_val[T_val.squeeze()==treatment_const]).to(device)
 
-        self.lamb = torch.nn.Parameter(torch.ones(1,1)*1e-3,requires_grad=True).to(device)
-        self.ls = torch.nn.Parameter(torch.ones(1,1),requires_grad=True).to(device)
+        self.lamb = torch.nn.Parameter(torch.tensor([1e-3]).float(),requires_grad=True).to(device)
+        self.ls = torch.nn.Parameter(torch.tensor([1.]).float(),requires_grad=True).to(device)
         self.eye = torch.eye(self.n).to(device)
 
         self.kernel = RBFKernel(self.X_tr)
@@ -53,7 +53,7 @@ class kme_model(torch.nn.Module):
         self.best = -np.inf
         self.patience=patience
         self.count=0
-        opt= torch.optim.Adam(params=(self.lamb,self.ls),lr=1e-2)
+        opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
         for i in tqdm.tqdm(range(its)):
             for j in range(5):
                 self.lamb.require_grad=False
