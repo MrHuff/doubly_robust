@@ -4,9 +4,10 @@ from doubly_robust_method.kernels import *
 import tqdm
 import torch
 
-class learanble_kernel(torch.nn.Module):
+general_ker_obj = Kernel()
+class learnable_kernel(torch.nn.Module):
     def __init__(self,kernel,ls,lamb):
-        super(learanble_kernel, self).__init__()
+        super(learnable_kernel, self).__init__()
         self.kernel = kernel
         self.lamb = torch.nn.Parameter(torch.tensor([lamb]).float(),requires_grad=True)
         self.ls = torch.nn.Parameter( torch.tensor([ls]).float(),requires_grad=True)
@@ -35,70 +36,97 @@ class kme_model():
         self.X_val = torch.from_numpy(X_val[T_val.squeeze()==treatment_const,:]).float().to(device)
         self.Y_val = torch.from_numpy(Y_val[T_val.squeeze()==treatment_const]).float().to(device)
 
-        #TODO: needs to be wrapped
+        #TODO: Update objective to Dino's suggestions also maybe not go to crazy with lengthscale optimizations...
 
         self.eye = torch.eye(self.n).to(device)
-
+        ls_Y =general_ker_obj.get_median_ls(self.Y_tr, self.Y_tr)
+        ls_X =general_ker_obj.get_median_ls(self.X_tr, self.X_tr)
         self.k = RBFKernel(self.X_tr)
-        self.kernel=learanble_kernel(self.k,1.0,1e-3).to(device)
-
+        self.l = RBFKernel(self.Y_tr)
+        self.l._set_lengthscale(ls_Y.item())
+        self.kernel=learnable_kernel(self.k, ls_X.item(), 1e-2).to(device)
+        self.L_tr = self.l.evaluate()
+        self.L_cross = self.l(self.Y_tr,self.Y_val)
 
     def calc_r2(self,val_error,y):
         return 1.-val_error/y.var()
 
-    def update_loop(self,opt):
-        self.inv, middle_ker = self.kernel.inverse()
-        total_error = self.calculate_training_error(middle_ker)
-        opt.zero_grad()
-        total_error.backwards()
-        opt.step()
-        val_error = self.calculate_validation_error()
-        val_r2 = self.calc_r2(val_error, self.Y_val)
-
-        if val_r2.item()>self.best:
+    def update_loop(self):
+        inv, middle_ker = self.kernel.inverse()
+        total_error = self.calculate_error( inv,middle_ker,self.L_tr)
+        # opt.zero_grad()
+        # total_error.backward()
+        # opt.step()
+        val_r2 = self.calculate_validation_error(inv)
+        # val_r2 = self.calc_r2(val_error, self.Y_val)
+        if val_r2.item()<self.best:
             self.best =val_r2.item()
             self.count=0
+            self.inv = inv
         else:
             self.count+=1
         print(val_r2.item())
 
     def fit(self,its =10,patience=10):
-        self.best = -np.inf
+        self.best = np.inf
         self.patience=patience
         self.count=0
-        opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
-        for i in tqdm.tqdm(range(its)):
-            for j in range(5):
-                self.kernel.lamb.require_grad=False
-                self.kernel.ls.require_grad=True
-                self.update_loop(opt)
-                if self.count>self.patience:
-                    return
-            for k in range(5):
-                self.kernel.ls.require_grad = False
-                self.kernel.lamb.require_grad=True
-                self.update_loop(opt)
-                if self.count>self.patience:
-                    return
+        self.kernel.ls.requires_grad=False
+        self.kernel.lamb.requires_grad=False
+        # opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
+        for lamb in [1e-5,1e-5*5,1e-4,1e-4*5,1e-3,1e-3*5,1e-2,5*1e-2,1e-1]:
+            self.kernel.lamb[0] = lamb
+            self.update_loop()
+
+            # for j in range(5):
+            #     self.kernel.lamb.require_grad=False
+            #     self.kernel.ls.require_grad=True
+            #     self.update_loop(opt)
+            #     if self.count>self.patience:
+            #         return
+            # for k in range(5):
+            #     self.kernel.ls.require_grad = False
+            #     self.kernel.lamb.require_grad=True
+            #     self.update_loop(opt)
+            #     if self.count>self.patience:
+            #         return
         return
 
-    def calculate_validation_error(self):
+    def calculate_validation_error(self,inv):
         with torch.no_grad():
-            middle_ker = self.kernel(self.X_tr,self.X_val)
-            y1_preds = self.inv @ (middle_ker.t() @ self.Y_val).t()
-            tr_error_1 = torch.mean((y1_preds - self.Y_val) ** 2)
+            middle_ker = self.kernel(self.X_val,self.X_tr)
+            tr_error_1 = self.calculate_error(inv,middle_ker,self.L_tr,self.L_cross)
             return tr_error_1
 
-    def calculate_training_error(self,middle_ker):
-        y1_preds = (self.inv) @ (middle_ker.t() @ self.Y_tr).t()
-        tr_error_1 = torch.mean((y1_preds - self.Y_tr) ** 2)
-        return tr_error_1
+    def calculate_error(self,inv,middle_ker,L,L_cross=None):
+        if L_cross is None:
+            L_cross = L
 
-    def get_psi(self, x_te, T_te):
-        middle_ker = self.kernel(self.X_tr,x_te)
-        return self.inv@(middle_ker@T_te)
+        tmp_calc = middle_ker.sum(dim=0,keepdim=True)@inv
+        term_1 = (tmp_calc@L)@tmp_calc.t()
+        term_2 = L.sum()
+        term_3 = tmp_calc@L_cross.sum(dim=1,keepdim=True)
+        error = term_1+term_2-2*term_3
+        return error
 
 
+
+    #TODO: needs fixing wow
+    def get_psi_part(self, x_te, T_te):
+        with torch.no_grad():
+            middle_ker = self.kernel(x_te,self.X_tr)
+            tmp_val = (T_te.t()@middle_ker)@self.inv
+        return tmp_val
+
+    def get_psi_square_term(self, tmp_val):
+        return (tmp_val.t()@self.L_tr)@tmp_val
+
+    def get_psi_cross_term(self, psi_part,Y_te,T_te):
+        b_term = self.l(self.Y_tr,Y_te)@T_te
+        return psi_part.t()@b_term
+    def get_weird_cross_term(self,left,right,other_Y_tr):
+        b_term = self.l(self.Y_tr,other_Y_tr)@right
+        return left.t()@b_term
 
 
 
