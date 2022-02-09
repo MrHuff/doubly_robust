@@ -46,6 +46,7 @@ class kme_model():
         self.l._set_lengthscale(ls_Y.item())
         self.kernel=learnable_kernel(self.k, ls_X.item(), 1e-2).to(device)
         self.L_tr = self.l.evaluate()
+        self.L_val = self.l(self.Y_val,self.Y_val)
         self.L_cross = self.l(self.Y_tr,self.Y_val)
 
     def calc_r2(self,val_error,y):
@@ -94,22 +95,19 @@ class kme_model():
 
     def calculate_validation_error(self,inv):
         with torch.no_grad():
-            middle_ker = self.kernel(self.X_val,self.X_tr)
-            tr_error_1 = self.calculate_error(inv,middle_ker,self.L_tr,self.L_cross)
+            middle_ker = self.kernel(self.X_tr,self.X_val)
+            tr_error_1 = self.calculate_error(inv,middle_ker,self.L_val,self.L_cross)
             return tr_error_1
 
     def calculate_error(self,inv,middle_ker,L,L_cross=None):
         if L_cross is None:
-            L_cross = L
-
-        tmp_calc = middle_ker.sum(dim=0,keepdim=True)@inv
-        term_1 = (tmp_calc@L)@tmp_calc.t()
-        term_2 = L.sum()
-        term_3 = tmp_calc@L_cross.sum(dim=1,keepdim=True)
-        error = term_1+term_2-2*term_3
-        return error
-
-
+            L_cross = self.L_tr
+        tmp_calc = inv@middle_ker
+        term_1 = ((tmp_calc.t()@self.L_tr) * tmp_calc.t()).sum(dim=1)
+        term_2 =torch.diag(L)
+        term_3 = -2*( tmp_calc*L_cross).sum(dim=0)
+        error = term_1 + term_2 + term_3
+        return error.mean()
 
     #TODO: needs fixing wow
     def get_psi_part(self, x_te, T_te):

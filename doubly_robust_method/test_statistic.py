@@ -32,10 +32,8 @@ class counterfactual_me_test():
         if self.permute_e:
             self.create_all_weights(e)
             self.calculate_psi()
-
         T_1_L_test = L@self.T_1_weight
         T_0_L_test = L@self.T_0_weight
-
         term_1 = T_1_L_test.t()@self.T_1_weight
         term_2 = self.kme_1.get_psi_square_term(self.psi_1)
         term_3 = -2*self.kme_1.get_psi_cross_term(self.psi_1,self.Y,self.T_1_weight)
@@ -53,9 +51,7 @@ class counterfactual_me_test():
     def create_all_weights(self,e):
         self.psi_0_weight=(e-self.T_1)/(1.-e)
         self.psi_1_weight=(self.T_1-e)/(e)
-        self.T_1_weight=e/self.T_1
-        self.T_1_weight[self.T_1_weight == float('inf')] = 0.0
-
+        self.T_1_weight=self.T_1/e
         self.T_0_weight = self.T_0/(1.-e)
 
     def get_permuted2d(self,ker):
