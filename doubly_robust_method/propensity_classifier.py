@@ -263,12 +263,11 @@ class propensity_estimator():
         self.patience=patience
         counter=0
         objective = torch.nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
-        opt = torch.optim.Adam(params=self.model.parameters())
+        opt = torch.optim.Adam(params=self.model.parameters(),lr=1e-2)
         for i in range(self.epochs):
             self.train_loop(opt,objective)
             y_preds,ys = self.val_loop(self.dataloader_val)
             auc = self.score_auc(y_preds,ys)
-            print(auc)
 
             if auc> self.best:
                 self.best =auc

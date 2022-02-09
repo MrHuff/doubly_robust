@@ -10,7 +10,7 @@ if __name__ == '__main__':
     training_params={'bs':100,
                      'patience':10,
                      'device':'cuda:0',
-                     'permute_e':False,
+                     'permute_e':False, #Don't think you are supposed to permute the weights...
                      'permutations':250,
     }
     experiment_params={

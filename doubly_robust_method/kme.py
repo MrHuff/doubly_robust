@@ -62,11 +62,9 @@ class kme_model():
         # val_r2 = self.calc_r2(val_error, self.Y_val)
         if val_r2.item()<self.best:
             self.best =val_r2.item()
-            self.count=0
             self.inv = inv
-        else:
-            self.count+=1
-        print(val_r2.item())
+        # else:
+        #     self.count+=1
 
     def fit(self,its =10,patience=10):
         self.best = np.inf

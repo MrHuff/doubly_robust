@@ -44,12 +44,17 @@ class testing_class():
                                                self.val_T,nn_params=self.nn_params,
                                                bs=self.training_params['bs'],X_cat_val=self.val_X_cat,X_cat_tr=self.tr_X_cat)
         self.classifier.fit(self.training_params['patience'])
+
+        print('classifier val auc: ', self.classifier.best)
         self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
         #train KME
         self.kme_1=kme_model(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,treatment_const=1,device=self.training_params['device'])
         self.kme_1.fit()
+        print('cme 1 val error: ', self.kme_1.best)
         self.kme_0=kme_model(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,treatment_const=0,device=self.training_params['device'])
         self.kme_0.fit()
+        print('cme 0 val error: ', self.kme_0.best)
+
         #run test
         self.test = counterfactual_me_test(X=self.tst_X,Y=self.tst_Y,e=self.e,T=self.tst_T,kme_1=self.kme_1,kme_0=self.kme_0,
                                            permute_e=self.training_params['permute_e'],
@@ -87,6 +92,7 @@ class baseline_test_class(testing_class):
                                                self.val_T,nn_params=self.nn_params,
                                                bs=self.training_params['bs'],X_cat_val=self.val_X_cat,X_cat_tr=self.tr_X_cat)
         self.classifier.fit(self.training_params['patience'])
+        print('classifier val auc: ', self.classifier.best)
         self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
         #train KME
         self.test=baseline_test(self.tst_Y,e=self.e.cpu(),T=self.tst_T,permutations=self.training_params['permutations'])
