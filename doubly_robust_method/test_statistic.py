@@ -4,7 +4,7 @@ from doubly_robust_method.kme import *
 general_ker_obj =Kernel()
 
 class counterfactual_me_test():
-    def __init__(self,X,Y,e,T,kme_1,kme_0,permute_e=False,permutations=250,device='cuda:0'):
+    def __init__(self,X,Y,e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0'):
         self.permutations = permutations
         self.X=torch.from_numpy(X).float().to(device)
         self.n= Y.shape[0]
@@ -14,24 +14,26 @@ class counterfactual_me_test():
         self.T_0 =1.-self.T_1
         self.kme_1=kme_1
         self.kme_0=kme_0
+        self.kme_1_indep=kme_1_indep
+        self.kme_0_indep=kme_0_indep
         self.permute_e = permute_e
-        self.create_all_weights(self.e)
         self.kernel = RBFKernel(self.Y).to(device)
         self.ls =general_ker_obj.get_median_ls(self.Y, self.Y)
         self.kernel._set_lengthscale(self.ls)
         self.L = self.kernel.evaluate()
-        self.calculate_psi()
-        self.ref_stat = self.calculate_test_statistic(self.L,self.e)
+        self.create_all_weights(self.e)
+        self.calculate_psi_ref()
+        self.ref_stat = self.calculate_test_statistic(self.L)
 
-    def calculate_psi(self):
-
+    def calculate_psi_ref(self):
         self.psi_1 = self.kme_1.get_psi_part(self.X, self.psi_1_weight).t()
         self.psi_0 = self.kme_0.get_psi_part(self.X, self.psi_0_weight).t()
 
-    def calculate_test_statistic(self,L,e=None):
-        if self.permute_e:
-            self.create_all_weights(e)
-            self.calculate_psi()
+    def calculate_psi(self):
+        self.psi_1 = self.kme_1_indep.get_psi_part(self.X, self.psi_1_weight).t()
+        self.psi_0 = self.kme_0_indep.get_psi_part(self.X, self.psi_0_weight).t()
+
+    def calculate_test_statistic(self,L):
         T_1_L_test = L@self.T_1_weight
         T_0_L_test = L@self.T_0_weight
         term_1 = T_1_L_test.t()@self.T_1_weight
@@ -66,9 +68,11 @@ class counterfactual_me_test():
             perm_L,idx = self.get_permuted2d(self.L)
             if self.permute_e:
                 e=self.e[idx]
+                self.create_all_weights(e)
+                self.calculate_psi()
             else:
                 e=self.e
-            tst = self.calculate_test_statistic(perm_L,e)
+            tst = self.calculate_test_statistic(perm_L)
             perm_stats.append(tst.item())
         return perm_stats,self.ref_stat.item()
 

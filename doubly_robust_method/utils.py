@@ -9,7 +9,7 @@ import pickle
 from baseline_cme.baseline_test_object import *
 
 class testing_class():
-    def __init__(self,X,T,Y,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
+    def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
         #split data
         self.cat_cols=cat_cols
         self.unique_cat_cols=[]
@@ -23,14 +23,15 @@ class testing_class():
         tr_ind, tst_ind, tmp_T, self.tst_T = train_test_split(indices,T, test_size = 0.5,stratify=T)
         tr_ind_2, val_ind, self.tr_T, self.val_T = train_test_split(tr_ind,tmp_T, test_size = 0.1,stratify=tmp_T)
         self.training_params = training_params
-        self.split_into_cont_cat(X,Y,tr_ind_2,val_ind,tst_ind)
+        self.split_into_cont_cat(X,Y,W,tr_ind_2,val_ind,tst_ind)
 
-    def split_into_cont_cat(self,X,Y,tr_ind_2,val_ind,tst_ind):
+    def split_into_cont_cat(self,X,Y,W,tr_ind_2,val_ind,tst_ind):
         kw = ['tr','val','tst']
         indices = [tr_ind_2,val_ind,tst_ind]
         for w,idx in zip(kw,indices):
             setattr(self,f'{w}_X',X[idx])
             setattr(self,f'{w}_Y',Y[idx])
+            setattr(self,f'{w}_W',W[idx])
             if self.cat_cols:
                 setattr(self, f'{w}_X_cont', self.X_cont[idx])
                 setattr(self, f'{w}_X_cat', self.X_cat[idx])
@@ -38,25 +39,47 @@ class testing_class():
                 setattr(self, f'{w}_X_cat',[])
                 setattr(self, f'{w}_X_cont', X[idx])
 
+
+    def fit_y_cond_x(self,tr_X,tr_Y,tr_T,val_X,val_Y,val_T):
+        kme_1=kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,treatment_const=1,device=self.training_params['device'])
+        kme_1.fit()
+        print('cme 1 val error: ', kme_1.best)
+        print('cme 1 lamb: ', kme_1.best_lamb)
+        print('cme 1 ls: ', kme_1.kernel.ls.item())
+        kme_0=kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,treatment_const=0,device=self.training_params['device'])
+        kme_0.fit()
+        print('cme 0 val error: ', kme_0.best)
+        print('cme 0 lamb: ', kme_0.best_lamb)
+        print('cme 0 ls: ', kme_0.kernel.ls.item())
+        return kme_0,kme_1
+
+
     def run_test(self,seed):
         #train classifier
         self.classifier = propensity_estimator(self.tr_X_cont,self.tr_T,self.val_X_cont,
                                                self.val_T,nn_params=self.nn_params,
-                                               bs=self.training_params['bs'],X_cat_val=self.val_X_cat,X_cat_tr=self.tr_X_cat)
-        self.classifier.fit(self.training_params['patience'])
+                                               bs=self.training_params['bs'],X_cat_val=self.val_X_cat,X_cat_tr=self.tr_X_cat,epochs=self.training_params['epochs'])
 
-        print('classifier val auc: ', self.classifier.best)
-        self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
-        #train KME
-        self.kme_1=kme_model(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,treatment_const=1,device=self.training_params['device'])
-        self.kme_1.fit()
-        print('cme 1 val error: ', self.kme_1.best)
-        self.kme_0=kme_model(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,treatment_const=0,device=self.training_params['device'])
-        self.kme_0.fit()
-        print('cme 0 val error: ', self.kme_0.best)
+        if self.training_params['oracle_weights']:
+            self.e = torch.from_numpy(self.tst_W)
+        else:
+            self.classifier.fit(self.training_params['patience'])
+            print('classifier val auc: ', self.classifier.best)
+            self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
 
+        self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T)
+
+        if self.training_params['double_estimate_kme']:
+
+            perm_tr=torch.randperm(self.tr_X.shape[0])
+            perm_val=torch.randperm(self.val_X.shape[0])
+            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X,self.tr_Y[perm_tr],self.tr_T,self.val_X,self.val_Y[perm_val],self.val_T)
+        else:
+            self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
         #run test
         self.test = counterfactual_me_test(X=self.tst_X,Y=self.tst_Y,e=self.e,T=self.tst_T,kme_1=self.kme_1,kme_0=self.kme_0,
+                                           kme_0_indep=self.kme_0_indep,
+                                           kme_1_indep=self.kme_1_indep,
                                            permute_e=self.training_params['permute_e'],
                                            permutations=self.training_params['permutations'],
                                            device=self.training_params['device'])
@@ -83,17 +106,23 @@ class testing_class():
         return pval
 
 class baseline_test_class(testing_class):
-    def __init__(self,X,T,Y,nn_params,training_params,cat_cols=[]):
-        super(baseline_test_class, self).__init__(X,T,Y,nn_params,training_params,cat_cols=cat_cols)
+    def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]):
+        super(baseline_test_class, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols=cat_cols)
 
     def run_test(self,seed):
         #train classifier
-        self.classifier = propensity_estimator(self.tr_X_cont,self.tr_T,self.val_X_cont,
-                                               self.val_T,nn_params=self.nn_params,
-                                               bs=self.training_params['bs'],X_cat_val=self.val_X_cat,X_cat_tr=self.tr_X_cat)
-        self.classifier.fit(self.training_params['patience'])
-        print('classifier val auc: ', self.classifier.best)
-        self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+
+        if self.training_params['oracle_weights']:
+            self.e = torch.from_numpy(self.tst_W)
+        else:
+            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                                   self.val_T, nn_params=self.nn_params,
+                                                   bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                   X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+            self.classifier.fit(self.training_params['patience'])
+            print('classifier val auc: ', self.classifier.best)
+            self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
         #train KME
         self.test=baseline_test(self.tst_Y,e=self.e.cpu(),T=self.tst_T,permutations=self.training_params['permutations'])
         perm_stats,self.tst_stat = self.test.permutation_test()
@@ -146,10 +175,11 @@ class experiment_object:
             T=data_dict['T']
             Y=data_dict['Y']
             X=data_dict['X']
+            W=data_dict['W']
             if self.test_type=='doubly_robust':
-                tst = testing_class(X=X,Y=Y,T=T,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+                tst = testing_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='baseline':
-                tst = baseline_test_class(X=X,Y=Y,T=T,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+                tst = baseline_test_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
 
             if self.debug_mode:
                 out = tst.run_test(seed)

@@ -36,7 +36,6 @@ class kme_model():
         self.X_val = torch.from_numpy(X_val[T_val.squeeze()==treatment_const,:]).float().to(device)
         self.Y_val = torch.from_numpy(Y_val[T_val.squeeze()==treatment_const]).float().to(device)
 
-        #TODO: Update objective to Dino's suggestions also maybe not go to crazy with lengthscale optimizations...
 
         self.eye = torch.eye(self.n).to(device)
         ls_Y =general_ker_obj.get_median_ls(self.Y_tr, self.Y_tr)
@@ -52,30 +51,35 @@ class kme_model():
     def calc_r2(self,val_error,y):
         return 1.-val_error/y.var()
 
-    def update_loop(self):
+    def update_loop(self,lamb=0.0):
         inv, middle_ker = self.kernel.inverse()
-        total_error = self.calculate_error( inv,middle_ker,self.L_tr)
-        # opt.zero_grad()
+        # total_error = self.calculate_error( inv,middle_ker,self.L_tr)
+        # self.opt.zero_grad()
         # total_error.backward()
-        # opt.step()
+        # self.opt.step()
         val_r2 = self.calculate_validation_error(inv)
         # val_r2 = self.calc_r2(val_error, self.Y_val)
         if val_r2.item()<self.best:
             self.best =val_r2.item()
             self.inv = inv
+            self.best_lamb = lamb
         # else:
-        #     self.count+=1
+        #     self.count+=1§
 
     def fit(self,its =10,patience=10):
+        #TODO: Neural network regressor
+        #Better cross val!
         self.best = np.inf
         self.patience=patience
         self.count=0
         self.kernel.ls.requires_grad=False
         self.kernel.lamb.requires_grad=False
-        # opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
-        for lamb in [1e-5,1e-5*5,1e-4,1e-4*5,1e-3,1e-3*5,1e-2,5*1e-2,1e-1]:
+        # self.opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
+        list_of_lamb = np.linspace(0,10,50).tolist()
+        for lamb in list_of_lamb:
             self.kernel.lamb[0] = lamb
-            self.update_loop()
+            # for i in range(its):
+            self.update_loop(lamb)
 
             # for j in range(5):
             #     self.kernel.lamb.require_grad=False
