@@ -94,6 +94,9 @@ class kme_model():
             #     if self.count>self.patience:
             #         return
         return
+    def get_middle_ker(self,X):
+        middle_ker = self.kernel(self.X_tr, X)
+        return middle_ker
 
     def calculate_validation_error(self,inv):
         with torch.no_grad():
