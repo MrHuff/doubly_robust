@@ -21,7 +21,7 @@ if __name__ == '__main__':
             }
             config_list.append(base_config)
         for el in config_list:
-            T,Y,X,w_true=case(**el)
+            T,Y,X,w_true=case_1(**el)
             s=el['seed']
             with  open(f'{job_name}/job_{s}.pickle', 'wb')as handle:
                 pickle.dump({'seed':s,'T':T,'Y':Y,'X':X,'W':w_true}, handle, protocol=pickle.HIGHEST_PROTOCOL)

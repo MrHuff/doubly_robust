@@ -113,7 +113,8 @@ if __name__ == '__main__':
         'dropout': 0.0,
           'transformation':lambda x : x
     }
-    b_list=[0.0,1e-3,1e-2,1e-2*2.5,1e-2*5]
+    # b_list=[0.0,1e-3,1e-2,1e-2*2.5,1e-2*5]
+    b_list=[0.0]
     # baseline_run(b_list,nn_params)
     dr_run(b_list,nn_params)
 

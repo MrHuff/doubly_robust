@@ -73,7 +73,7 @@ class testing_class():
 
             perm_tr=torch.randperm(self.tr_X.shape[0])
             perm_val=torch.randperm(self.val_X.shape[0])
-            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X,self.tr_Y[perm_tr],self.tr_T,self.val_X,self.val_Y[perm_val],self.val_T)
+            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T)
         else:
             self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
         #run test
