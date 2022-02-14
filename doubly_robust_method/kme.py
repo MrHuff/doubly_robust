@@ -3,7 +3,6 @@ import numpy as np
 from doubly_robust_method.kernels import *
 import tqdm
 import torch
-
 general_ker_obj = Kernel()
 class learnable_kernel(torch.nn.Module):
     def __init__(self,kernel,ls,lamb):
@@ -75,7 +74,7 @@ class kme_model():
         self.kernel.ls.requires_grad=False
         self.kernel.lamb.requires_grad=False
         # self.opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
-        list_of_lamb = np.linspace(0,10,50).tolist()
+        list_of_lamb = np.linspace(0,5,20).tolist()
         for lamb in list_of_lamb:
             self.kernel.lamb[0] = lamb
             # for i in range(its):
@@ -130,6 +129,8 @@ class kme_model():
     def get_weird_cross_term(self,left,right,other_Y_tr):
         b_term = self.l(self.Y_tr,other_Y_tr)@right
         return left.t()@b_term
+
+
 
 
 

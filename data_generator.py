@@ -11,17 +11,17 @@ if __name__ == '__main__':
         config_list=[]
         for s in range(SEEDS):
             base_config={'seed':s,
-                         'ns':1000,
+                         'ns':2000,
                          'd':D,
-                         'alpha_vec':np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
-                         'alpha_0':0.05,
-                         'beta_vec':np.array([0.1,0.2,0.3,0.4,0.5]),#np.random.randn(5)*0.05,
+                         'alpha_vec':np.array([3.05,3.04,3.03,3.02,3.01]),#np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                         'alpha_0':-40,#0.05,
+                         'beta_vec':np.array([3,3,3,3,3]),#np.array([0.1,0.2,0.3,0.4,0.5]),#np.random.randn(5)*0.05,
                          'noise_var':0.1,
                          'b':b
             }
             config_list.append(base_config)
         for el in config_list:
-            T,Y,X,w_true=case_1(**el)
+            T,Y,X,w_true=case_1c(**el)
             s=el['seed']
             with  open(f'{job_name}/job_{s}.pickle', 'wb')as handle:
                 pickle.dump({'seed':s,'T':T,'Y':Y,'X':X,'W':w_true}, handle, protocol=pickle.HIGHEST_PROTOCOL)

@@ -115,7 +115,7 @@ if __name__ == '__main__':
     }
     # b_list=[0.0,1e-3,1e-2,1e-2*2.5,1e-2*5]
     b_list=[0.0]
-    # baseline_run(b_list,nn_params)
+    baseline_run(b_list,nn_params)
     dr_run(b_list,nn_params)
 
 

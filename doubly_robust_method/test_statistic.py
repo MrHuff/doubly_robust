@@ -38,7 +38,7 @@ class counterfactual_me_test():
 
 
         self.create_all_weights(self.e)
-        self.calculate_psi_ref()
+        self.calc_psi(self.X,self.kme_0,self.kme_1)
         self.ref_stat = self.calculate_test_statistic(self.L)
         print('ref errors')
         print(self.sanity_check_estimates(self.X_0,self.X_1,self.kme_0,self.kme_1,self.Y_0,self.Y_1, self.L_0,self.L_1))
@@ -51,10 +51,10 @@ class counterfactual_me_test():
         setattr(self,name,L)
         setattr(self,'kernel_'+name,kernel)
     #permutation should occur twice
-    def calculate_psi_ref(self):
-        self.psi_1 = self.kme_1.get_psi_part(self.X, self.psi_1_weight).t()
-        self.psi_0 = self.kme_0.get_psi_part(self.X, self.psi_0_weight).t()
 
+    def calc_psi(self,X,kme_0,kme_1):
+        self.psi_1 = kme_1.get_psi_part(X, self.psi_1_weight).t()
+        self.psi_0 = kme_0.get_psi_part(X, self.psi_0_weight).t()
 
     def sanity_check_estimates(self,X_0,X_1,kme_0,kme_1,Y_0,Y_1,L_0,L_1):
         mid_ker_0 = kme_0.get_middle_ker(X_0)
@@ -65,9 +65,6 @@ class counterfactual_me_test():
         error_1 = kme_1.calculate_error(kme_1.inv, mid_ker_1,L_1,cross_1)
         return error_0.item(),error_1.item()
 
-    def calculate_psi(self,X):
-        self.psi_1 = self.kme_1_indep.get_psi_part(X, self.psi_1_weight).t()
-        self.psi_0 = self.kme_0_indep.get_psi_part(X, self.psi_0_weight).t()
     def calculate_test_statistic(self,L):
         T_1_L_test = L@self.T_1_weight
         T_0_L_test = L@self.T_0_weight
@@ -106,28 +103,27 @@ class counterfactual_me_test():
         for i in range(self.permutations):
             perm_L,idx = self.get_permuted2d(self.L)
             if self.permute_e:
-
                 e=self.e[idx]
                 self.create_all_weights(e)
                 X = self.X[idx]
-                self.calculate_psi(X)
-                perm_Y  = self.Y[idx]
-                perm_Y_0 = perm_Y[:self.Y_0.shape[0]]
-                perm_Y_1 = perm_Y[self.Y_0.shape[0]:]
-                perm_X_0 =X[:self.Y_0.shape[0]]
-                perm_X_1 =X[self.Y_0.shape[0]:]
-                perm_L_0 = self.kernel_L_0(perm_Y_0,perm_Y_0)
-                perm_L_1 = self.kernel_L_1(perm_Y_1,perm_Y_1)
-                a,b = self.sanity_check_estimates(perm_X_0,perm_X_1,self.kme_0_indep, self.kme_1_indep, perm_Y_0, perm_Y_1, perm_L_0,
-                                                  perm_L_1)
-                running_err_0+=a
-                running_err_1+=b
+                self.calc_psi(X,self.kme_0_indep,self.kme_1_indep)
+                # perm_Y  = self.Y[idx]
+                # perm_Y_0 = perm_Y[:self.Y_0.shape[0]]
+                # perm_Y_1 = perm_Y[self.Y_0.shape[0]:]
+                # perm_X_0 =X[:self.Y_0.shape[0]]
+                # perm_X_1 =X[self.Y_0.shape[0]:]
+                # perm_L_0 = self.kernel_L_0(perm_Y_0,perm_Y_0)
+                # perm_L_1 = self.kernel_L_1(perm_Y_1,perm_Y_1)
+                # a,b = self.sanity_check_estimates(perm_X_0,perm_X_1,self.kme_0_indep, self.kme_1_indep, perm_Y_0, perm_Y_1, perm_L_0,
+                #                                   perm_L_1)
+                # running_err_0+=a
+                # running_err_1+=b
             else:
                 e=self.e
             tst = self.calculate_test_statistic(perm_L)
             perm_stats.append(tst.item())
-        print('average perm errors')
-        print(running_err_0/self.permutations,running_err_1/self.permutations)
+        # print('average perm errors')
+        # print(running_err_0/self.permutations,running_err_1/self.permutations)
         return perm_stats,self.ref_stat.item()
 
 if __name__ == '__main__':

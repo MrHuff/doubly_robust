@@ -123,7 +123,6 @@ class baseline_test_class(testing_class):
             self.classifier.fit(self.training_params['patience'])
             print('classifier val auc: ', self.classifier.best)
             self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
-        #train KME
         self.test=baseline_test(self.tst_Y,e=self.e.cpu(),T=self.tst_T,permutations=self.training_params['permutations'])
         perm_stats,self.tst_stat = self.test.permutation_test()
         self.perm_stats = perm_stats

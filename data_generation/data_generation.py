@@ -50,6 +50,32 @@ def case_1a(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pa
     YY = Y[:, np.newaxis]
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
 
+
+alpha_vec_2 = np.array([1.05,1.04,1.03,1.02,1.01])
+def case_1c(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
+    np.random.seed(seed)
+    X = np.random.randn(ns, d)*3
+    Prob_vec = expit(np.dot(alpha_vec, X.T) + np.dot(alpha_vec_2, (X ** 2).T) + alpha_0)
+    T = bernoulli.rvs(Prob_vec)
+    y_cond_x = np.dot(beta_vec,X.T)
+    Y = y_cond_x  + noise_var * np.random.randn(ns) + b * T #make CME get the job done on Y|X
+    YY = Y[:, np.newaxis]
+    return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+
+
+def case_1b(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
+    np.random.seed(seed)
+    X = np.random.randn(ns, d)
+    Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
+    T = bernoulli.rvs(Prob_vec)
+    sigma2 = np.median(pairwise_distances(X, X, metric='euclidean')) ** 2
+    x_ker = gauss_rbf(X[:d,:],X,sigma2)
+    y_cond_x = np.dot(beta_vec,x_ker)
+    Y = y_cond_x  + noise_var * np.random.randn(ns) + b * T #make CME get the job done on Y|X
+    YY = Y[:, np.newaxis]
+    return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+
+
 def case_2(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 3
     np.random.seed(seed)
     X = np.random.randn(ns, d)
