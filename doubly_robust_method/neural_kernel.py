@@ -58,9 +58,10 @@ class neural_kme_model():
                  treatment_const,
                  neural_net_parameters,
                  approximate_inverse=False,permutation_training=False,device='cuda:0'):
-
-        self.N = X_tr.shape[0]
-        self.X_tr, self.Y_tr,self.X_val,self.Y_val=X_tr, Y_tr,X_val,Y_val
+        self.device = device
+        self.N_tr = X_tr.shape[0]
+        self.N_val = X_val.shape[0]
+        self.X_tr_og, self.Y_tr_og,self.X_val_og,self.Y_val_og=X_tr, Y_tr,X_val,Y_val
         self.mask_tr = T_tr.squeeze()==treatment_const
         self.mask_val = T_val.squeeze()==treatment_const
         self.X_tr = torch.from_numpy(X_tr[self.mask_tr,:]).float().to(device)
@@ -69,7 +70,7 @@ class neural_kme_model():
         self.Y_val = torch.from_numpy(Y_val[self.mask_val]).float().to(device)
 
 
-        ls_Y =general_ker_obj.get_median_ls(self.Y_tr, self.Y_tr)
+        ls_Y =general_ker_obj.get_median_ls(self.Y_tr)
         self.l = RBFKernel(self.Y_tr)
         self.l._set_lengthscale(ls_Y.item())
         self.L_tr = self.l.evaluate()
@@ -78,9 +79,10 @@ class neural_kme_model():
 
 
         self.n=X_tr.shape[0]
+        neural_net_parameters['d_in_x'] = X_tr.shape[1]
         self.r = neural_net_parameters['output_dim']
         self.eye = torch.eye(self.r).to(device)
-        self.feature_map = feature_map(**neural_net_parameters)
+        self.feature_map = feature_map(**neural_net_parameters).to(device)
         self.approximate_inverse = approximate_inverse
         self.permutation_training = permutation_training
 
@@ -88,11 +90,11 @@ class neural_kme_model():
             self.inverse_hack = inverse_hack(self.n,self.r)
 
     def reset_data(self,X_tr,Y_tr,X_val,Y_val):
-        self.X_tr = X_tr[self.mask_tr,:]
-        self.Y_tr = Y_tr[self.mask_tr]
-        self.X_val =X_val[self.mask_val,:]
-        self.Y_val = Y_val[self.mask_val]
-        ls_Y =general_ker_obj.get_median_ls(self.Y_tr, self.Y_tr)
+        self.X_tr = torch.from_numpy(X_tr[self.mask_tr,:]).float().to(self.device)
+        self.Y_tr = torch.from_numpy(Y_tr[self.mask_tr]).float().to(self.device)
+        self.X_val = torch.from_numpy(X_val[self.mask_val,:]).float().to(self.device)
+        self.Y_val = torch.from_numpy(Y_val[self.mask_val]).float().to(self.device)
+        ls_Y =general_ker_obj.get_median_ls(self.Y_tr)
         self.l = RBFKernel(self.Y_tr)
         self.l._set_lengthscale(ls_Y.item())
         self.L_tr = self.l.evaluate()
@@ -124,14 +126,14 @@ class neural_kme_model():
     def calculate_error(self,X_ref,L,L_cross=None):
         if L_cross is None:
             L_cross = self.L_tr
-        if self.X_tr==X_ref:
+        if torch.equal(self.X_tr,X_ref):
             x_map_2 = self.x_map_tr
         else:
             x_map_2 = self.feature_map(X_ref)
         tmp_calc= x_map_2@self.store_part
-        term_1 = ((tmp_calc.t()@self.L_tr) * tmp_calc.t()).sum(dim=1)
+        term_1 = ((tmp_calc@self.L_tr) * tmp_calc).sum(dim=1)
         term_2 =torch.diag(L)
-        term_3 = -2*( tmp_calc*L_cross).sum(dim=0)
+        term_3 = -2*( tmp_calc.t()*L_cross).sum(dim=0)
         error = term_1 + term_2 + term_3
         return error.mean()
 
@@ -162,13 +164,14 @@ class neural_kme_model():
         val_error = self.calculate_validation_error(self.X_val)
         if val_error.item()<self.best:
             self.best =val_error.item()
+            print(self.best)
             self.best_lamb = lamb
 
         self.opt.zero_grad()
         total_error.backward()
-        self.opt.step(total_error)
+        self.opt.step()
 
-    def fit(self,its =25,patience=10):
+    def fit(self,its =200,patience=10):
         self.best = np.inf
         self.patience = patience
         self.count = 0
@@ -176,22 +179,26 @@ class neural_kme_model():
             self.opt= torch.optim.Adam(list(self.feature_map.parameters())+list(self.inverse_hack.parameters()),lr=1e-2)
         else:
             self.opt= torch.optim.Adam(self.feature_map.parameters(),lr=1e-2)
-        list_of_lamb = np.linspace(0, 1, 20).tolist()
+        # list_of_lamb = np.linspace(0, 1, 20).tolist()
+        list_of_lamb=[1e-2]
         for lamb in list_of_lamb:
             self.lamb= lamb
             for i in range(its):
                 if self.permutation_training:
-                    idx = torch.randperm(self.N)
-                    X_tr, Y_tr, X_val, Y_val=self.X_tr[idx,:], self.Y_tr[idx,:], self.X_val[idx,:], self.Y_val[idx,:]
+                    idx_tr = torch.randperm(self.N_tr)
+                    idx_val = torch.randperm(self.N_val)
+                    X_tr, Y_tr, X_val, Y_val=self.X_tr_og[idx_tr,:], self.Y_tr_og[idx_tr,:], self.X_val_og[idx_val,:], self.Y_val_og[idx_val,:]
                     self.reset_data(X_tr, Y_tr, X_val, Y_val)
                 self.update_loop(lamb)
         self.lamb = self.best_lamb
         self.calculate_operator()
-        self.store_part.detach()
+        self.store_part=self.store_part.detach()
         self.store_part.requires_grad = False
         return
 
-    #
+    def calculate_error_external(self,X,Y,L):
+        cross = self.l(self.Y_tr,Y)
+        return self.calculate_error(X,L,cross)
 
 
 

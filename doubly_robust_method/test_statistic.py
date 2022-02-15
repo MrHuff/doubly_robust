@@ -4,7 +4,7 @@ from doubly_robust_method.kme import *
 general_ker_obj =Kernel()
 
 class counterfactual_me_test():
-    def __init__(self,X,Y,e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0'):
+    def __init__(self,X,Y,e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0',debug_mode=False):
         self.permutations = permutations
         self.X=torch.from_numpy(X).float().to(device)
         self.n= Y.shape[0]
@@ -15,7 +15,7 @@ class counterfactual_me_test():
         mask_1 = (self.T_1==1).squeeze()
         self.Y_1 = self.Y[mask_1,:]
         self.Y_0 = self.Y[~mask_1,:]
-
+        self.debug_mode = debug_mode
         self.X_1 = self.X[mask_1,:]
         self.X_0 = self.X[~mask_1,:]
 
@@ -57,12 +57,8 @@ class counterfactual_me_test():
         self.psi_0 = kme_0.get_psi_part(X, self.psi_0_weight).t()
 
     def sanity_check_estimates(self,X_0,X_1,kme_0,kme_1,Y_0,Y_1,L_0,L_1):
-        mid_ker_0 = kme_0.get_middle_ker(X_0)
-        cross_0 = kme_0.l(kme_0.Y_tr,Y_0)
-        error_0 = kme_0.calculate_error(kme_0.inv, mid_ker_0,L_0,cross_0)
-        cross_1 = kme_1.l(kme_1.Y_tr,Y_1)
-        mid_ker_1 = kme_1.get_middle_ker(X_1)
-        error_1 = kme_1.calculate_error(kme_1.inv, mid_ker_1,L_1,cross_1)
+        error_0 = kme_0.calculate_error_external(X_0,Y_0,L_0)
+        error_1 = kme_1.calculate_error_external(X_1,Y_1,L_1)
         return error_0.item(),error_1.item()
 
     def calculate_test_statistic(self,L):
@@ -107,23 +103,25 @@ class counterfactual_me_test():
                 self.create_all_weights(e)
                 X = self.X[idx]
                 self.calc_psi(X,self.kme_0_indep,self.kme_1_indep)
-                # perm_Y  = self.Y[idx]
-                # perm_Y_0 = perm_Y[:self.Y_0.shape[0]]
-                # perm_Y_1 = perm_Y[self.Y_0.shape[0]:]
-                # perm_X_0 =X[:self.Y_0.shape[0]]
-                # perm_X_1 =X[self.Y_0.shape[0]:]
-                # perm_L_0 = self.kernel_L_0(perm_Y_0,perm_Y_0)
-                # perm_L_1 = self.kernel_L_1(perm_Y_1,perm_Y_1)
-                # a,b = self.sanity_check_estimates(perm_X_0,perm_X_1,self.kme_0_indep, self.kme_1_indep, perm_Y_0, perm_Y_1, perm_L_0,
-                #                                   perm_L_1)
-                # running_err_0+=a
-                # running_err_1+=b
+                if self.debug_mode:
+                    perm_Y  = self.Y[idx]
+                    perm_Y_0 = perm_Y[:self.Y_0.shape[0]]
+                    perm_Y_1 = perm_Y[self.Y_0.shape[0]:]
+                    perm_X_0 =X[:self.Y_0.shape[0]]
+                    perm_X_1 =X[self.Y_0.shape[0]:]
+                    perm_L_0 = self.kernel_L_0(perm_Y_0,perm_Y_0)
+                    perm_L_1 = self.kernel_L_1(perm_Y_1,perm_Y_1)
+                    a,b = self.sanity_check_estimates(perm_X_0,perm_X_1,self.kme_0_indep, self.kme_1_indep, perm_Y_0, perm_Y_1, perm_L_0,
+                                                      perm_L_1)
+                    running_err_0+=a
+                    running_err_1+=b
             else:
                 e=self.e
             tst = self.calculate_test_statistic(perm_L)
             perm_stats.append(tst.item())
-        # print('average perm errors')
-        # print(running_err_0/self.permutations,running_err_1/self.permutations)
+        if self.debug_mode:
+            print('average perm errors')
+            print(running_err_0/self.permutations,running_err_1/self.permutations)
         return perm_stats,self.ref_stat.item()
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from doubly_robust_method.propensity_classifier import *
 from doubly_robust_method.kme import *
+from doubly_robust_method.neural_kernel import *
 from doubly_robust_method.test_statistic import *
 import os
 from scipy.stats import kstest
@@ -40,17 +41,35 @@ class testing_class():
                 setattr(self, f'{w}_X_cont', X[idx])
 
 
-    def fit_y_cond_x(self,tr_X,tr_Y,tr_T,val_X,val_Y,val_T):
-        kme_1=kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,treatment_const=1,device=self.training_params['device'])
-        kme_1.fit()
-        print('cme 1 val error: ', kme_1.best)
-        print('cme 1 lamb: ', kme_1.best_lamb)
-        print('cme 1 ls: ', kme_1.kernel.ls.item())
-        kme_0=kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,treatment_const=0,device=self.training_params['device'])
-        kme_0.fit()
-        print('cme 0 val error: ', kme_0.best)
-        print('cme 0 lamb: ', kme_0.best_lamb)
-        print('cme 0 ls: ', kme_0.kernel.ls.item())
+    def fit_y_cond_x(self,tr_X,tr_Y,tr_T,val_X,val_Y,val_T,permutation_training=False):
+        if self.training_params['neural_cme']:
+            kme_1=neural_kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,
+                                   neural_net_parameters=self.training_params['neural_net_parameters'],
+                                   approximate_inverse=self.training_params['approximate_inverse'],
+                                   permutation_training=permutation_training,
+                                   treatment_const=1,device=self.training_params['device'])
+            kme_1.fit()
+            print('cme 1 val error: ', kme_1.best)
+            print('cme 1 lamb: ', kme_1.best_lamb)
+            kme_0=neural_kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,
+                                   neural_net_parameters=self.training_params['neural_net_parameters'],
+                                   approximate_inverse=self.training_params['approximate_inverse'],
+                                   permutation_training=permutation_training
+                                   ,treatment_const=0,device=self.training_params['device'])
+            kme_0.fit()
+            print('cme 0 val error: ', kme_0.best)
+            print('cme 0 lamb: ', kme_0.best_lamb)
+        else:
+            kme_1=kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,treatment_const=1,device=self.training_params['device'])
+            kme_1.fit()
+            print('cme 1 val error: ', kme_1.best)
+            print('cme 1 lamb: ', kme_1.best_lamb)
+            print('cme 1 ls: ', kme_1.kernel.ls.item())
+            kme_0=kme_model(tr_X,tr_Y,tr_T,val_X,val_Y,val_T,treatment_const=0,device=self.training_params['device'])
+            kme_0.fit()
+            print('cme 0 val error: ', kme_0.best)
+            print('cme 0 lamb: ', kme_0.best_lamb)
+            print('cme 0 ls: ', kme_0.kernel.ls.item())
         return kme_0,kme_1
 
 
@@ -67,13 +86,12 @@ class testing_class():
             print('classifier val auc: ', self.classifier.best)
             self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
 
-        self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T)
+        self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
 
         if self.training_params['double_estimate_kme']:
-
             perm_tr=torch.randperm(self.tr_X.shape[0])
             perm_val=torch.randperm(self.val_X.shape[0])
-            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T)
+            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T,True)
         else:
             self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
         #run test
@@ -82,7 +100,8 @@ class testing_class():
                                            kme_1_indep=self.kme_1_indep,
                                            permute_e=self.training_params['permute_e'],
                                            permutations=self.training_params['permutations'],
-                                           device=self.training_params['device'])
+                                           device=self.training_params['device'],
+                                           debug_mode=self.training_params['debug_mode'])
 
         perm_stats,self.tst_stat = self.test.permutation_test()
         self.perm_stats = np.array(perm_stats)
@@ -145,6 +164,7 @@ class experiment_object:
         self.training_params = training_params
         self.cat_cols = cat_cols
         self.test_type = test_type
+
     @staticmethod
     def get_level(level, p_values):
         total_pvals = len(p_values)

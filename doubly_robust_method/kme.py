@@ -130,6 +130,10 @@ class kme_model():
         b_term = self.l(self.Y_tr,other_Y_tr)@right
         return left.t()@b_term
 
+    def calculate_error_external(self,X,Y,L):
+        mid_ker = self.get_middle_ker(X)
+        cross = self.l(self.Y_tr,Y)
+        return self.calculate_error(self.inv,mid_ker,L,cross)
 
 
 
