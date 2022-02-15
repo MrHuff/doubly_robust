@@ -56,9 +56,9 @@ def dr_run(b_list,nn_params):
     nn_parms_2 = {
         'layers_x': [16,8],
         'cat_size_list':[],
-        'dropout': 0.3,
+        'dropout': 0.0,
         'transformation': torch.tanh,
-        'output_dim': 10,
+        'output_dim': 25,
     }
     #Uppgrade conditional expectation estimate.
     training_params = {'bs': 100,
@@ -69,7 +69,7 @@ def dr_run(b_list,nn_params):
                        'oracle_weights': False,
                        'double_estimate_kme': True,
                        'epochs': 0,
-                       'debug_mode': False,
+                       'debug_mode': True,
                        'neural_net_parameters':nn_parms_2,
                        'approximate_inverse':False,
                        'neural_cme':True

@@ -5,7 +5,7 @@ from doubly_robust_method.kernels import *
 from doubly_robust_method.kme import *
 # class feature_map_kernel():
 #     def __init__(self):
-
+import copy
 #RFF's can be done, but not sure it's going to be that much better TBH? It's just a scalable version of kernels... in case you wanna be fully non-parametric
 
 
@@ -42,7 +42,7 @@ class feature_map(torch.nn.Module):
 class inverse_hack(torch.nn.Module):
     def __init__(self,N,r):
         super(inverse_hack, self).__init__()
-        self.C = torch.nn.Parameter(torch.randn(N,r))
+        self.C = torch.nn.Parameter(torch.randn(N,r)*0.0001)
 
     def forward(self,b):
         return self.C.t()@(self.C@b)
@@ -52,6 +52,8 @@ class inverse_hack(torch.nn.Module):
 
 # def congjuate_gradient_solver():
 #     pass
+
+
 
 class neural_kme_model():
     def __init__(self,X_tr,Y_tr,T_tr,X_val,Y_val,T_val,
@@ -69,14 +71,12 @@ class neural_kme_model():
         self.X_val = torch.from_numpy(X_val[self.mask_val,:]).float().to(device)
         self.Y_val = torch.from_numpy(Y_val[self.mask_val]).float().to(device)
 
-
         ls_Y =general_ker_obj.get_median_ls(self.Y_tr)
         self.l = RBFKernel(self.Y_tr)
         self.l._set_lengthscale(ls_Y.item())
         self.L_tr = self.l.evaluate()
         self.L_val = self.l(self.Y_val,self.Y_val)
         self.L_cross = self.l(self.Y_tr,self.Y_val)
-
 
         self.n=X_tr.shape[0]
         neural_net_parameters['d_in_x'] = X_tr.shape[1]
@@ -86,8 +86,8 @@ class neural_kme_model():
         self.approximate_inverse = approximate_inverse
         self.permutation_training = permutation_training
 
-        if self.permutation_training:
-            self.inverse_hack = inverse_hack(self.n,self.r)
+        if self.approximate_inverse:
+            self.inverse_hack = inverse_hack(self.n,self.r).to(device)
 
     def reset_data(self,X_tr,Y_tr,X_val,Y_val):
         self.X_tr = torch.from_numpy(X_tr[self.mask_tr,:]).float().to(self.device)
@@ -114,8 +114,8 @@ class neural_kme_model():
         self.x_map_tr=self.feature_map(self.X_tr) #Nxr
 
         if self.approximate_inverse:
-            inverse =  self.inverse_hack()+ self.eye * self.lamb
-            self.store_part =inverse@self.x_map_tr.t()
+            # inverse = + self.eye * self.lamb
+            self.store_part = self.inverse_hack(self.x_map_tr.t())
         else:
             inverse = self.x_map_tr.t() @ self.x_map_tr + self.eye * self.lamb
             self.store_part = torch.inverse(inverse)@self.x_map_tr.t()
@@ -136,6 +136,12 @@ class neural_kme_model():
         term_3 = -2*( tmp_calc.t()*L_cross).sum(dim=0)
         error = term_1 + term_2 + term_3
         return error.mean()
+
+    def assign_best_model(self):
+        self.best_model = copy.deepcopy(self.feature_map)
+        if self.approximate_inverse:
+            self.best_hack = copy.deepcopy(self.inverse_hack)
+
 
     def calculate_validation_error(self,X_val):
         with torch.no_grad():
@@ -164,9 +170,8 @@ class neural_kme_model():
         val_error = self.calculate_validation_error(self.X_val)
         if val_error.item()<self.best:
             self.best =val_error.item()
-            print(self.best)
             self.best_lamb = lamb
-
+            self.assign_best_model()
         self.opt.zero_grad()
         total_error.backward()
         self.opt.step()
@@ -180,7 +185,8 @@ class neural_kme_model():
         else:
             self.opt= torch.optim.Adam(self.feature_map.parameters(),lr=1e-2)
         # list_of_lamb = np.linspace(0, 1, 20).tolist()
-        list_of_lamb=[1e-2]
+        self.best_model=self.feature_map
+        list_of_lamb=[1e-3]
         for lamb in list_of_lamb:
             self.lamb= lamb
             for i in range(its):
@@ -190,6 +196,9 @@ class neural_kme_model():
                     X_tr, Y_tr, X_val, Y_val=self.X_tr_og[idx_tr,:], self.Y_tr_og[idx_tr,:], self.X_val_og[idx_val,:], self.Y_val_og[idx_val,:]
                     self.reset_data(X_tr, Y_tr, X_val, Y_val)
                 self.update_loop(lamb)
+        self.feature_map=self.best_model
+        if self.approximate_inverse:
+            self.inverse_hack=self.best_hack
         self.lamb = self.best_lamb
         self.calculate_operator()
         self.store_part=self.store_part.detach()
