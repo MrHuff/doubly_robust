@@ -69,7 +69,7 @@ def dr_run(b_list,nn_params):
                        'oracle_weights': False,
                        'double_estimate_kme': True,
                        'epochs': 0,
-                       'debug_mode': True,
+                       'debug_mode': False,
                        'neural_net_parameters':nn_parms_2,
                        'approximate_inverse':False,
                        'neural_cme':True
