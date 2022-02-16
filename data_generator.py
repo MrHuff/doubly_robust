@@ -4,7 +4,7 @@ import pickle
 if __name__ == '__main__':
     D=5
     for b in [0.0,1e-3,1e-2,1e-2*2.5,1e-2*5]:
-        job_name = f'unit_test_b={b}'
+        job_name = f'easier_unit_test_b={b}'
         if not os.path.exists(job_name):
             os.makedirs(job_name)
         SEEDS=100
@@ -13,8 +13,8 @@ if __name__ == '__main__':
             base_config={'seed':s,
                          'ns':2000,
                          'd':D,
-                         'alpha_vec':np.array([3.05,3.04,3.03,3.02,3.01]),#np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
-                         'alpha_0':-40,#0.05,
+                         'alpha_vec':np.array([3.05,3.04,3.03,3.02,3.01])/100.,#np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                         'alpha_0':0.05,#0.05,
                          'beta_vec':np.array([3,3,3,3,3]),#np.array([0.1,0.2,0.3,0.4,0.5]),#np.random.randn(5)*0.05,
                          'noise_var':0.1,
                          'b':b

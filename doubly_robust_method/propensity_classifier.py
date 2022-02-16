@@ -1,5 +1,5 @@
 from torch.utils.data.dataset import Dataset
-from pycox_local.pycox.preprocessing.feature_transforms import *
+from pycox.preprocessing.feature_transforms import *
 import torch
 import sklearn
 from sklearn.preprocessing import MinMaxScaler,StandardScaler

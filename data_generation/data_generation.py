@@ -17,6 +17,17 @@ from sklearn.metrics import pairwise_distances
 #
 # b=0
 
+def case_0(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
+    np.random.seed(seed)
+    X = np.random.randn(ns, d)
+    Prob_vec = np.array([0.5]*ns)
+    T = bernoulli.rvs(Prob_vec)
+    Y = np.dot(beta_vec, X.T) + noise_var * np.random.randn(ns) + b * T
+    YY = Y[:, np.newaxis]
+    return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+
+
+
 def case_1(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
     np.random.seed(seed)
     X = np.random.randn(ns, d)
@@ -51,7 +62,7 @@ def case_1a(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pa
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
 
 
-alpha_vec_2 = np.array([1.05,1.04,1.03,1.02,1.01])
+alpha_vec_2 = np.array([1.05,1.04,1.03,1.02,1.01])/20.
 def case_1c(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
     np.random.seed(seed)
     X = np.random.randn(ns, d)*3

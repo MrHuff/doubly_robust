@@ -2,14 +2,24 @@ import torch
 from doubly_robust_method.kernels import *
 from doubly_robust_method.kme import *
 general_ker_obj =Kernel()
+import random
+def swap(xs, a, b):
+    xs[a], xs[b] = xs[b], xs[a]
+
+def derange(xs):
+    for a in range(1, len(xs)):
+        b = random.choice(range(0, a))
+        swap(xs, a, b)
+    return xs
 
 class counterfactual_me_test():
-    def __init__(self,X,Y,e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0',debug_mode=False):
+    def __init__(self,X,Y,e,perm_e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0',debug_mode=False):
         self.permutations = permutations
         self.X=torch.from_numpy(X).float().to(device)
         self.n= Y.shape[0]
         self.Y = torch.from_numpy(Y).float().to(device)
         self.e =e.to(device)
+        self.perm_e = perm_e.to(device)
         self.T_1 = torch.from_numpy(T).float().to(device)
         self.T_0 =1.-self.T_1
         mask_1 = (self.T_1==1).squeeze()
@@ -18,24 +28,21 @@ class counterfactual_me_test():
         self.debug_mode = debug_mode
         self.X_1 = self.X[mask_1,:]
         self.X_0 = self.X[~mask_1,:]
-
+        self.idx_array = [i for i in range(self.n)]
         self.kme_1=kme_1
         self.kme_0=kme_0
         self.kme_1_indep=kme_1_indep
         self.kme_0_indep=kme_0_indep
         self.permute_e = permute_e
 
-
         self.setup_Y_kernel(self.Y,'L',device)
         self.setup_Y_kernel(self.Y_0,'L_0',device)
         self.setup_Y_kernel(self.Y_1,'L_1',device)
-
 
         # self.kernel = RBFKernel(self.Y).to(device)
         # self.ls =general_ker_obj.get_median_ls(self.Y, self.Y)
         # self.kernel._set_lengthscale(self.ls)
         # self.L = self.kernel.evaluate()
-
 
         self.create_all_weights(self.e)
         self.calc_psi(self.X,self.kme_0,self.kme_1)
@@ -86,6 +93,7 @@ class counterfactual_me_test():
 
     def get_permuted2d(self,ker):
         idx = torch.randperm(self.n)
+        # idx = np.array(derange(self.idx_array))
         kernel_X = ker[:,idx]
         kernel_X = kernel_X[idx,:]
         return kernel_X,idx
@@ -99,7 +107,7 @@ class counterfactual_me_test():
         for i in range(self.permutations):
             perm_L,idx = self.get_permuted2d(self.L)
             if self.permute_e:
-                e=self.e[idx]
+                e=self.perm_e[idx]
                 self.create_all_weights(e)
                 X = self.X[idx]
                 self.calc_psi(X,self.kme_0_indep,self.kme_1_indep)

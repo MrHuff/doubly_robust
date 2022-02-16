@@ -75,27 +75,37 @@ class testing_class():
 
     def run_test(self,seed):
         #train classifier
-        self.classifier = propensity_estimator(self.tr_X_cont,self.tr_T,self.val_X_cont,
-                                               self.val_T,nn_params=self.nn_params,
-                                               bs=self.training_params['bs'],X_cat_val=self.val_X_cat,X_cat_tr=self.tr_X_cat,epochs=self.training_params['epochs'])
 
         if self.training_params['oracle_weights']:
             self.e = torch.from_numpy(self.tst_W)
         else:
+            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                                   self.val_T, nn_params=self.nn_params,
+                                                   bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                   X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+            perm_tr = torch.randperm(self.tr_X.shape[0])
+            perm_val = torch.randperm(self.val_X.shape[0])
+            self.classifier_perm = propensity_estimator(self.tr_X_cont[perm_tr], self.tr_T, self.val_X_cont[perm_val],
+                                                        self.val_T, nn_params=self.nn_params,
+                                                        bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                        X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
             self.classifier.fit(self.training_params['patience'])
+            self.classifier_perm.fit(self.training_params['patience'])
             print('classifier val auc: ', self.classifier.best)
+            print('classifier perm val auc: ', self.classifier_perm.best)
             self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+            self.perm_e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
 
         self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
 
         if self.training_params['double_estimate_kme']:
-            perm_tr=torch.randperm(self.tr_X.shape[0])
-            perm_val=torch.randperm(self.val_X.shape[0])
             self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T,True)
         else:
             self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
         #run test
-        self.test = counterfactual_me_test(X=self.tst_X,Y=self.tst_Y,e=self.e,T=self.tst_T,kme_1=self.kme_1,kme_0=self.kme_0,
+
+        self.test = counterfactual_me_test(X=self.tst_X,Y=self.tst_Y,perm_e=self.perm_e,e=self.e,T=self.tst_T,kme_1=self.kme_1,kme_0=self.kme_0,
                                            kme_0_indep=self.kme_0_indep,
                                            kme_1_indep=self.kme_1_indep,
                                            permute_e=self.training_params['permute_e'],
@@ -142,7 +152,7 @@ class baseline_test_class(testing_class):
             self.classifier.fit(self.training_params['patience'])
             print('classifier val auc: ', self.classifier.best)
             self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
-        self.test=baseline_test(self.tst_Y,e=self.e.cpu(),T=self.tst_T,permutations=self.training_params['permutations'])
+        self.test=baseline_test_gpu(self.tst_Y,e=self.e,T=self.tst_T,permutations=self.training_params['permutations'])
         perm_stats,self.tst_stat = self.test.permutation_test()
         self.perm_stats = perm_stats
         self.pval = self.calculate_pval_symmetric(self.perm_stats,self.tst_stat )
