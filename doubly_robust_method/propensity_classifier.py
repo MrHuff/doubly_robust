@@ -1,3 +1,5 @@
+import copy
+
 from torch.utils.data.dataset import Dataset
 from pycox.preprocessing.feature_transforms import *
 import torch
@@ -216,7 +218,7 @@ class propensity_estimator():
         self.dataset_val.set('train')
         self.dataloader_tr = custom_dataloader(dataset=self.dataset_tr,batch_size=bs,shuffle=True)
         self.dataloader_val = custom_dataloader(dataset=self.dataset_val,batch_size=bs,shuffle=False)
-
+        self.best_model=None
     def predict(self,X_test,T_tst,X_cat_test):
         dataset = general_custom_dataset(X_test,T_tst,X_cat_test)
         dataset.set('train')
@@ -271,12 +273,14 @@ class propensity_estimator():
 
             if auc> self.best:
                 self.best =auc
+                self.best_model=copy.deepcopy(self.model)
                 counter=0
             else:
                 counter+=1
             if counter>self.patience:
+                self.model = self.best_model
                 return
-
+        self.model=self.best_model
 
 
 

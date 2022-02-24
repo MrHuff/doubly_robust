@@ -34,8 +34,8 @@ class baseline_test_gpu():
         self.YY1=torch.from_numpy(Y[T==1]).unsqueeze(-1).float().to(device)
         # self.sigma2= np.median(pairwise_distances(self.YY0, self.YY1, metric='euclidean')) ** 2
         self.sigma2= general_ker_obj.get_median_ls(self.YY0,self.YY1)
-        e_0 = e[T==0]
-        e_1 = e[T==1]
+        e_0 = e[T==0].float().to(device)
+        e_1 = e[T==1].float().to(device)
         self.e_input = torch.cat([e_0,e_1],dim=0)
         self.perms = permutations
 
