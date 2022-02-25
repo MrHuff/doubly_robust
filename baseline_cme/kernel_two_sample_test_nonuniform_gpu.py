@@ -37,8 +37,8 @@ def compute_null_distribution(K, w, m, n, iterations=10000, verbose=False,
         # K_i = K[idx, idx[:, None]]
         kernel_X = K[:, idx]
         kernel_X = kernel_X[idx, :]
-        w_i = w[idx]
-        mmd2u_null[i] = MMD2u(kernel_X, w_i, m, n)
+        # w_i = w[idx]
+        mmd2u_null[i] = MMD2u(kernel_X, w, m, n)
 
     if verbose:
         print("")
