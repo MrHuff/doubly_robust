@@ -266,6 +266,7 @@ class propensity_estimator():
         counter=0
         objective = torch.nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
         opt = torch.optim.Adam(params=self.model.parameters(),lr=1e-2)
+        self.best_model = copy.deepcopy(self.model)
         for i in range(self.epochs):
             self.train_loop(opt,objective)
             y_preds,ys = self.val_loop(self.dataloader_val)

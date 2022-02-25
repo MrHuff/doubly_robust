@@ -107,8 +107,8 @@ class counterfactual_me_test():
         for i in range(self.permutations):
             perm_L,idx = self.get_permuted2d(self.L)
             if self.permute_e:
-                e=self.perm_e[idx]
-                self.create_all_weights(e)
+                # e=self.perm_e[idx]
+                # self.create_all_weights(e)
                 X = self.X[idx]
                 self.calc_psi(X,self.kme_0_indep,self.kme_1_indep)
                 if self.debug_mode:

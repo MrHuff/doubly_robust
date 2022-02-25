@@ -41,7 +41,7 @@ class baseline_test_gpu():
 
 
     def permutation_test(self):
-        mmd2u_rbf, mmd2u_null_rbf, p_value_rbf = kernel_two_sample_test_nonuniform_gpu(self.YY0, self.YY1, self.e_input,
+        mmd2u_rbf, mmd2u_null_rbf, p_value_rbf = kernel_two_sample_test_nonuniform_gpu(X=self.YY0, Y=self.YY1,w= self.e_input,
                                                                                    kernel_function='rbf',
                                                                                    ls= self.sigma2,
                                                                                    verbose=False,

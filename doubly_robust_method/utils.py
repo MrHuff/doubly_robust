@@ -166,8 +166,8 @@ class baseline_test_class(testing_class):
 class experiment_object:
     def __init__(self,experiment_save_path,data_dir_load,num_exp,nn_params,training_params,cat_cols,test_type='baseline',debug_mode=False):
         self.experiment_save_path= experiment_save_path
-        if not os.path.exists(experiment_save_path):
-            os.makedirs(experiment_save_path)
+        if not os.path.exists(self.experiment_save_path):
+            os.makedirs(self.experiment_save_path)
         self.data_file_list=os.listdir(data_dir_load)
         self.debug_mode=debug_mode
         self.num_exp = num_exp
@@ -194,6 +194,8 @@ class experiment_object:
         return output
 
     def run_experiments(self):
+        if os.path.exists(f'{self.experiment_save_path}/final_res.csv'):
+            return
         summary_job_cols = ['pow_001','pow_005','pow_010','KS-pval','KS-stat']
         columns = ['seed','pval','tst_stat']+[f'perm_{i}' for i in range(self.training_params['permutations'])]
         data_col = []
@@ -230,6 +232,7 @@ class experiment_object:
         final_res = pd.DataFrame([output],columns=summary_job_cols)
         big_df.to_csv(f'{self.experiment_save_path}/big_df.csv')
         final_res.to_csv(f'{self.experiment_save_path}/final_res.csv')
+
 
 
 

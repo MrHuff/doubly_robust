@@ -66,7 +66,7 @@ def compute_null_distribution_given_permutations(K, w, m, n, permutation,
 
 
 def kernel_two_sample_test_nonuniform_gpu(X, Y, w, kernel_function='rbf', iterations=10000,
-                                          verbose=False, random_state=None, **kwargs):
+                                          verbose=False, random_state=None, ls=1.0):
     """Compute MMD^2_u, its null distribution and the p-value of the
     kernel two-sample test.
     Note that extra parameters captured by **kwargs will be passed to
@@ -83,7 +83,7 @@ def kernel_two_sample_test_nonuniform_gpu(X, Y, w, kernel_function='rbf', iterat
 
     if kernel_function == 'rbf':
         kernel = RBFKernel(XY)
-        kernel._set_lengthscale(**kwargs)
+        kernel._set_lengthscale(ls)
         K = kernel.evaluate()
     elif kernel_function == 'linear':
         kernel = LinearKernel(XY)

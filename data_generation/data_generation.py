@@ -32,6 +32,7 @@ def case_1(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pap
     np.random.seed(seed)
     X = np.random.randn(ns, d)
     Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
+    # Prob_vec = np.exp(-np.dot(alpha_vec, X.T)**2)
     T = bernoulli.rvs(Prob_vec)
     Y = np.dot(beta_vec, X.T) + noise_var * np.random.randn(ns) + b * T
     YY = Y[:, np.newaxis]
