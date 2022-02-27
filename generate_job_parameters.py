@@ -65,7 +65,7 @@ def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
                                'neural_cme': neural_cme
                                }
             experiment_params = {
-                'experiment_save_path': f'{method}/{dir_name}/{post_fix}_{job_name}_results', 'data_dir_load': f'{data_dir}',
+                'experiment_save_path': f'{job_dir}_results/{method}/{dir_name}/{post_fix}_{job_name}_results', 'data_dir_load': f'{data_dir}',
                 'num_exp': 100, 'nn_params': nn_params, 'training_params': training_params, 'cat_cols': [],
                 'test_type': f'{method}', 'debug_mode': False
             }
@@ -77,8 +77,8 @@ def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
 
 if __name__ == '__main__':
 
-    bvec = [0.0,0.01]
-    Dvec = [5]
-    Nvec = [1000]
-    generate_parameters('recreate_krik','unit_test',bvec,Dvec,Nvec)
+    bvec=[0.0,0.01,0.025,0.05,0.1]
+    Dvec=[5]
+    Nvec=[100,250,500,1000,2000,5000]
+    generate_parameters('recreate_krik_big','unit_test',bvec,Dvec,Nvec)
 

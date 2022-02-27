@@ -3,9 +3,9 @@ import os
 import pickle
 import itertools
 if __name__ == '__main__':
-    bvec=[0.0,0.01]
+    bvec=[0.0,0.01,0.025,0.05,0.1]
     Dvec=[5]
-    Nvec=[1000]
+    Nvec=[100,250,500,1000,2000,5000]
     p_list = list(itertools.product(bvec,Dvec,Nvec))
     for (b,D,N) in p_list:
         post_fix = f'b={b}_D={D}_{N}'
@@ -20,9 +20,9 @@ if __name__ == '__main__':
             base_config = {'seed': s,
                            'ns': N,
                            'd': D,
-                           'alpha_vec': np.array([0.05,0.04,0.03,0.02,0.01])*25, #Treatment assignment
+                           'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,
                            'alpha_0': 0.05,  # 0.05,
-                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5])*0.01, #Confounding
+                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
                            'noise_var': 0.1,
                            'b': b
                            }

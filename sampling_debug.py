@@ -23,11 +23,11 @@ if __name__ == '__main__':
     base_config = {'seed': s,
                    'ns': 1000,
                    'd': D,
-                   'alpha_vec':np.array([0.05,0.04,0.03,0.02,0.01]), #As soon as there is a disjoint probdist of 0 and 1,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,  # Treatment assignment
                    # the thing just blows up regardless of what you do?!
                    # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
                    'alpha_0': 0.05,  # 0.05,
-                   'beta_vec': np.array([0.1,0.2,0.3,0.4,0.5])*0.0,  # np.array([0.1,0.2,0.3,0.4,0.5]),#np.random.randn(5)*0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
                    'noise_var': 0.1,
                    'b': b
                    }
