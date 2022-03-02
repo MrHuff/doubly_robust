@@ -64,7 +64,13 @@ def dr_run(b_list,nn_params):
         c=experiment_object(**experiment_params)
         c.run_experiments()
 
-
+def double_ml_test(b,d,n):
+    experiment_params={
+        'experiment_save_path':f'doubleml/krik_test_{b}' , 'data_dir_load':f'datasets/unit_test/b={b}_D={d}_{n}', 'num_exp':100, 'nn_params':{}, 'training_params':{'permutations':250}, 'cat_cols':[],
+        'test_type':'doubleml', 'debug_mode':True
+    }
+    c=experiment_object(**experiment_params)
+    c.run_experiments()
 if __name__ == '__main__':
 
     #TODO: Neural network, figure cross validation/split strategy. Regression (i.e. E[Y|X]) under dependency and then under independency i.e. pre-permutation and post-permutation
@@ -78,8 +84,8 @@ if __name__ == '__main__':
     }
     # b_list=[0.0,1e-3,1e-2,1e-2*2.5,1e-2*5]
     # b_list=[1e-3,1e-2,1e-2*2.5,1e-2*5]
-    b_list=[0.0]
-    baseline_run(b_list,nn_params)
+    for b in [0.0,0.05]:
+        double_ml_test(b,5,1000)
     # dr_run(b_list,nn_params)
 
 

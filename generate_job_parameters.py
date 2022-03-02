@@ -32,11 +32,11 @@ def get_dir_name(dir_name,b,D,N):
 def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
     # methods=['baseline','doubly_robust']
-    methods=['baseline','doubly_robust']
-    oracle_weights =[False,True]
-    double_estimate_kme=[True,False]
-    neural_cmes=[False]
-    train_prop=[True,False]
+    methods=['doubly_robust','doubleml']
+    oracle_weights =[False]
+    double_estimate_kme=[True]
+    neural_cmes=[True]
+    train_prop=[True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
 
     if not os.path.exists(f'{job_dir}'):
@@ -50,6 +50,12 @@ def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
                 neural_cme=False
             if oracle_weight:
                 tp=False
+            if method=='doubleml':
+                de_kme=False
+                neural_cme=False
+                tp=True
+                oracle_weight=False
+
             job_name=f'ow={oracle_weight}_dek={de_kme}_ncme={neural_cme}_tp={tp}'
             training_params = {'bs': 100,
                                'patience': 10,

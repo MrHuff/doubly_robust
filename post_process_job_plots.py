@@ -141,7 +141,7 @@ def generate_tex_plot(nlist):
 if __name__ == '__main__':
     job_path='recreate_krik_big'
     df = get_job_df(job_path)
-    plot_2_est_weights(dir='krik_big',df=df,
+    plot_2_est_weights(dir='krik_big_2',df=df,
                        d_list=df['D'].unique().tolist(),
                        methods=df['mname'].unique().tolist(),
                        nlist=df['n'].unique().tolist())

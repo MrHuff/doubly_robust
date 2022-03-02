@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from doubly_robust_method.propensity_classifier import *
 from doubly_robust_method.kme import *
+from double_ml_baseline.double_ml_baseline import *
 from doubly_robust_method.neural_kernel import *
 from doubly_robust_method.test_statistic import *
 import os
@@ -161,7 +162,19 @@ class baseline_test_class(testing_class):
         output = [seed,self.pval,self.tst_stat]
         return output+perm_stats.tolist()
 
-    #TODO: calc size,power and KS-test
+class baseline_double_ml(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_double_ml, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        self.X, self.T, self.Y=X,T,Y
+    def run_test(self, seed):
+        # train classifier
+        self.test = doubleML_baseline_test(X=self.X,Y=self.Y,T=self.T)
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ',self.pval,)
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat]*self.training_params['permutations']
 
 class experiment_object:
     def __init__(self,experiment_save_path,data_dir_load,num_exp,nn_params,training_params,cat_cols,test_type='baseline',debug_mode=False):
@@ -213,6 +226,8 @@ class experiment_object:
                 tst = testing_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='baseline':
                 tst = baseline_test_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='doubleml':
+                tst =baseline_double_ml(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
 
             if self.debug_mode:
                 out = tst.run_test(seed)
