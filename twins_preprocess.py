@@ -67,9 +67,12 @@ X = X.iloc[rows_to_keep,:]
 X = (X['dbirwt_1'].values-X['dbirwt_0'].values)>=250
 Y = Y.iloc[rows_to_keep,:]
 Y = (Y['mort_0']-Y['mort_1']).values
+
 def get_perm(s,n,m,X_in,Y_in,Z):
     if not os.path.exists(f'datasets/twins_{m}'):
         os.makedirs(f'datasets/twins_{m}')
+    if not os.path.exists(f'datasets/twins_{m}_null'):
+        os.makedirs(f'datasets/twins_{m}_null')
     np.random.seed(s)
     perm_vec = np.random.permutation(n)[:m]
     T= X_in[perm_vec]
@@ -78,7 +81,8 @@ def get_perm(s,n,m,X_in,Y_in,Z):
     with open(f'datasets/twins_{m}/job_{s}.pickle', 'wb') as handle:
         pickle.dump({'seed': s, 'T': T, 'Y': Y, 'X': X, 'W': T}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-
+    with open(f'datasets/twins_{m}_null/job_{s}.pickle', 'wb') as handle:
+        pickle.dump({'seed': s, 'T': T, 'Y': np.random.randn(*Y.shape), 'X': X, 'W': T}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
     cat_cols = []

@@ -10,7 +10,7 @@ if __name__ == '__main__':
     for (b,D,N) in p_list:
         post_fix = f'b={b}_D={D}_{N}'
 
-        job_name = 'datasets/'+f'unit_test/'+post_fix
+        job_name = 'datasets/'+f'distributions/'+post_fix
         if not os.path.exists(job_name):
             os.makedirs(job_name)
         SEEDS=100
@@ -18,17 +18,21 @@ if __name__ == '__main__':
         #Issue is probably in weights estimation... When you have an extra double term things get dicey...
         for s in range(SEEDS):
             base_config = {'seed': s,
-                           'ns': N,
+                           'ns': 1000,
                            'd': D,
-                           'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,
+                           'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                           # the thing just blows up regardless of what you do?!
+                           # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
                            'alpha_0': 0.05,  # 0.05,
-                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.1,  # Confounding
                            'noise_var': 0.1,
                            'b': b
                            }
             config_list.append(base_config)
         for el in config_list:
-            T,Y,X,w_true=case_1(**el)
+            T, Y, X, w_true = case_distributional(**el)
+
+            # T,Y,X,w_true=case_1(**el)
             s=el['seed']
             with open(f'{job_name}/job_{s}.pickle', 'wb')as handle:
                 pickle.dump({'seed':s,'T':T,'Y':Y,'X':X,'W':w_true}, handle, protocol=pickle.HIGHEST_PROTOCOL)
