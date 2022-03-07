@@ -4,8 +4,8 @@ import numpy as np
 import pandas as pd
 from xbart import XBART
 
-from doubly_robust_method.utils import testing_class
 
+from vanilla_doublyrobust_baseline.vanilla_dr import calculate_pval_symmetric
 
 class BART_baseline_test():
     def __init__(self,X_tr,T_tr,Y_tr,X_val,T_val,X_test,T_test,bootstrap=250):
@@ -52,7 +52,7 @@ class BART_baseline_test():
             effect_list.append(stat)
 
         effect_list=np.array(effect_list)
-        pval=testing_class.calculate_pval_symmetric(effect_list,self.ref_stat)
+        pval=calculate_pval_symmetric(effect_list,self.ref_stat)
 
         return pval,self.ref_stat
 

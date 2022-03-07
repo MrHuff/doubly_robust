@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from zepid.causal.gformula import TimeFixedGFormula, SurvivalGFormula
-from doubly_robust_method.utils import testing_class
-
+# from doubly_robust_method.utils import testing_class
+from vanilla_doublyrobust_baseline.vanilla_dr import calculate_pval_symmetric
 class gformula_baseline_test():
     def __init__(self,X,Y,T,n_bootstraps):
         self.n,self.d=X.shape
@@ -44,7 +44,7 @@ class gformula_baseline_test():
         # pval= self.dml_irm_obj.summary['P>|t|'].item()
         # stat= self.dml_irm_obj.summary['P>|t|'].item()
         rd_results = np.array(rd_results)
-        pval=testing_class.calculate_pval_symmetric(rd_results,self.ref_stat)
+        pval=calculate_pval_symmetric(rd_results,self.ref_stat)
         return pval,self.ref_stat
 
 

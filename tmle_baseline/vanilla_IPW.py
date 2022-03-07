@@ -5,7 +5,6 @@ import pandas as pd
 from zepid.causal.ipw import IPTW, IPMW
 # from zepid.causal.snm import GEstimationSNM
 # from zepid.causal.doublyrobust import AIPTW, TMLE
-from doubly_robust_method.utils import testing_class
 
 import statsmodels.api as sm
 import statsmodels.formula.api as smf

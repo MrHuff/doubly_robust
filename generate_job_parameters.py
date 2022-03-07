@@ -32,7 +32,8 @@ def get_dir_name(dir_name,b,D,N):
 def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
     # methods=['baseline','doubly_robust']
-    methods=['doubly_robust','doubleml']
+    # methods=['doubly_robust','doubleml']
+    methods=['vanilla_dr','gformula','tmle','ipw','cf','bart']
     oracle_weights =[False]
     double_estimate_kme=[True]
     neural_cmes=[True]
@@ -50,7 +51,7 @@ def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
                 neural_cme=False
             if oracle_weight:
                 tp=False
-            if method=='doubleml':
+            if method in ['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']:
                 de_kme=False
                 neural_cme=False
                 tp=True
@@ -72,7 +73,7 @@ def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
                                }
             experiment_params = {
                 'experiment_save_path': f'{job_dir}_results/{method}/{dir_name}/{post_fix}_{job_name}_results', 'data_dir_load': f'{data_dir}',
-                'num_exp': 100, 'nn_params': nn_params, 'training_params': training_params, 'cat_cols': [],
+                'num_exp': 2, 'nn_params': nn_params, 'training_params': training_params, 'cat_cols': [],
                 'test_type': f'{method}', 'debug_mode': False
             }
             # print(experiment_params)
@@ -83,8 +84,13 @@ def generate_parameters(job_dir,dir_name,bvec,Dvec,Nvec):
 
 if __name__ == '__main__':
 
-    bvec=[0.0,0.01,0.025,0.05,0.1]
+    # bvec=[0.0,0.01,0.025,0.05,0.1]
+    # Dvec=[5]
+    # Nvec=[100,250,500,1000,2000,5000]
+
+    bvec=[0.0]
     Dvec=[5]
-    Nvec=[100,250,500,1000,2000,5000]
-    generate_parameters('recreate_krik_big','unit_test',bvec,Dvec,Nvec)
+    Nvec=[100,5000]
+
+    generate_parameters('baseline_test','unit_test',bvec,Dvec,Nvec)
 

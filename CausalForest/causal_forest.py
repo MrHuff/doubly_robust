@@ -1,6 +1,7 @@
 import numpy as np
 from econml.dml import CausalForestDML
-from doubly_robust_method.utils import testing_class
+from vanilla_doublyrobust_baseline.vanilla_dr import calculate_pval_symmetric
+
 class CausalForest_baseline_test():
     def __init__(self,X_tr,T_tr,Y_tr,X_val,X_test,bootstrap=250):
         self.X_test=X_test
@@ -22,7 +23,7 @@ class CausalForest_baseline_test():
             stat = self.est.ate(x0)
             effect_list.append(stat)
         effect_list = np.array(effect_list)
-        pval = testing_class.calculate_pval_symmetric(effect_list, self.ref_stat)
+        pval = calculate_pval_symmetric(effect_list, self.ref_stat)
 
         return pval, self.ref_stat
 

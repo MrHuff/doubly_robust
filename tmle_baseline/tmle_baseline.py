@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 from zepid.causal.doublyrobust import AIPTW, TMLE
-from  doubly_robust_method.utils import testing_class
 
+from vanilla_doublyrobust_baseline.vanilla_dr import calculate_pval_symmetric
 
 
 class tmle_baseline_test():
@@ -35,7 +35,7 @@ class tmle_baseline_test():
             # tmle.summary()
             rd_results.append(tmle.average_treatment_effect)
         rd_results = np.array(rd_results)
-        pval=testing_class.calculate_pval_symmetric(rd_results,self.ref_stat)
+        pval=calculate_pval_symmetric(rd_results,self.ref_stat)
 
         return pval,self.ref_stat
 

@@ -1,7 +1,12 @@
 import numpy as np
 from sklearn.linear_model import LogisticRegression, LinearRegression
 import pandas as pd
-from doubly_robust_method.utils import testing_class
+
+def calculate_pval_symmetric(bootstrapped_list, test_statistic):
+    pval_right = 1 - 1 / (bootstrapped_list.shape[0] + 1) * (1 + (bootstrapped_list <= test_statistic).sum())
+    pval_left = 1 - pval_right
+    pval = 2 * min([pval_left.item(), pval_right.item()])
+    return pval
 
 def doubly_robust(df, X, T, Y):
     ps = LogisticRegression(C=1e6, max_iter=1000).fit(df[X], df[T]).predict_proba(df[X])[:, 1]
@@ -31,5 +36,5 @@ class vanilla_dr_baseline_test():
             stat = doubly_robust(s,self.x_col,'D','Y')
             rd_results.append(stat)
         rd_results = np.array(rd_results)
-        pval=testing_class.calculate_pval_symmetric(rd_results,self.ref_stat)
+        pval=calculate_pval_symmetric(rd_results,self.ref_stat)
         return pval,self.ref_stat
