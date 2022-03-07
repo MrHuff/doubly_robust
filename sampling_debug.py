@@ -55,7 +55,7 @@ if __name__ == '__main__':
     base_config = {'seed': s,
                    'ns': 1000,
                    'd': D,
-                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,  # Treatment assignment
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
                    # the thing just blows up regardless of what you do?!
                    # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
                    'alpha_0': 0.05,  # 0.05,
@@ -63,21 +63,21 @@ if __name__ == '__main__':
                    'noise_var': 0.1,
                    'b': b
                    }
-    T, Y, X, w_true = case_1(**base_config)
+    T, Y, X, w_true = case_1_robin(**base_config)
     debug_plot_weights(T,w_true)
     debug_plot_treatments(T,Y)
 
-    n, d = X.shape
-    columns = [f'x_{i}' for i in range(d)] + ['Y'] + ['D']
-    x_col = [f'x_{i}' for i in range(d)]
-    cov_string = ''
-    for i in range(d):
-        cov_string += f' + x_{i}'
-
-    dfs = pd.DataFrame(np.concatenate([X, Y, T], axis=1), columns=columns)
-    n_bootstraps = 250
-
-    debug_different_models(X,T,Y)
+    # n, d = X.shape
+    # columns = [f'x_{i}' for i in range(d)] + ['Y'] + ['D']
+    # x_col = [f'x_{i}' for i in range(d)]
+    # cov_string = ''
+    # for i in range(d):
+    #     cov_string += f' + x_{i}'
+    #
+    # dfs = pd.DataFrame(np.concatenate([X, Y, T], axis=1), columns=columns)
+    # n_bootstraps = 250
+    #
+    # debug_different_models(X,T,Y)
 
     # print(doubly_robust(dfs,X=x_col,T='D',Y='Y'))
 

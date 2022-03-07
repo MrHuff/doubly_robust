@@ -39,7 +39,110 @@ if __name__ == '__main__':
             # print(YY1.squeeze()==(Y[T==1]))
 
 
+"""
+FIRST CASE - Outlier case
 
+            base_config = {'seed': s,
+                           'ns': N,
+                           'd': D,
+                           'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,
+                           'alpha_0': 0.05,  # 0.05,
+                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                           'noise_var': 0.1,
+                           'b': b
+                           }
+"""
+
+
+"""
+SECOND CASE - Conditions satisfied
+
+    base_config = {'seed': s,
+                   'ns': 1000,
+                   'd': D,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                   # the thing just blows up regardless of what you do?!
+                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                   'alpha_0': 0.05,  # 0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                   'noise_var': 0.1,
+                   'b': b
+                   }
+"""
+
+"""
+THIRD CASE A - BANANA
+
+    base_config = {'seed': s,
+                   'ns': 1000,
+                   'd': D,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                   # the thing just blows up regardless of what you do?!
+                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                   'alpha_0': 0.05,  # 0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.1,  # Confounding
+                   'noise_var': 0.1,
+                   'b': b
+                   }
+    T, Y, X, w_true = case_1_xy_banana(**base_config)
+
+THIRD CASE B - SIN
+
+    base_config = {'seed': s,
+                   'ns': 1000,
+                   'd': D,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                   # the thing just blows up regardless of what you do?!
+                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                   'alpha_0': 0.05,  # 0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 1.0,  # Confounding
+                   'noise_var': 0.1,
+                   'b': b
+                   }
+    T, Y, X, w_true = case_1_xy_sin(**base_config)
+
+"""
+
+
+
+"""
+FORTH CASE - Robin suggestion:
+
+    base_config = {'seed': s,
+                   'ns': 1000,
+                   'd': D,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                   # the thing just blows up regardless of what you do?!
+                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                   'alpha_0': 0.05,  # 0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                   'noise_var': 0.1,
+                   'b': b
+                   }
+    T, Y, X, w_true = case_1_robin(**base_config)
+
+
+"""
+
+"""
+FiFTH CASE - distributional differences 
+
+
+    base_config = {'seed': s,
+                   'ns': 1000,
+                   'd': D,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                   # the thing just blows up regardless of what you do?!
+                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                   'alpha_0': 0.05,  # 0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.2,  # Confounding
+                   'noise_var': 0.1,
+                   'b': b
+                   }
+    T, Y, X, w_true = case_distributional(**base_config)
+
+
+"""
 
 
 
