@@ -103,7 +103,7 @@ class IPTW_pval(IPTW):
 
 
 class iptw_baseline_test():
-    def __init__(self,X,Y,T,n_bootstraps):
+    def __init__(self,X,T,Y,n_bootstraps):
         self.n,self.d=X.shape
         columns=[f'x_{i}' for i in range(self.d)] + ['Y']+['D']
         self.cov_string =''
@@ -126,7 +126,7 @@ class iptw_baseline_test():
         iptw.treatment_model(self.cov_string,
                              print_results=False)
         iptw.marginal_structural_model('D')
-        iptw.fit()
+        iptw.fit_pval()
         pval = iptw.D_pval
         self.ref_stat = iptw.average_treatment_effect.iloc[1, 0]
         return pval,self.ref_stat

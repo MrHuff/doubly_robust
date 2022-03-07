@@ -9,6 +9,13 @@ import os
 from scipy.stats import kstest
 import pickle
 from baseline_cme.baseline_test_object import *
+from vanilla_doublyrobust_baseline.vanilla_dr import *
+from tmle_baseline.g_formula import *
+from tmle_baseline.tmle_baseline import *
+from tmle_baseline.vanilla_IPW import *
+from CausalForest.causal_forest import *
+from BART_baseline.BART import *
+
 
 class testing_class():
     def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
@@ -176,6 +183,96 @@ class baseline_double_ml(testing_class):
         output = [seed, self.pval, self.tst_stat]
         return output + [self.tst_stat]*self.training_params['permutations']
 
+
+
+class baseline_vanilla_dr(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_vanilla_dr, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        self.X, self.T, self.Y=X,T,Y
+    def run_test(self, seed):
+        # train classifier
+        self.test = vanilla_dr_baseline_test(X=self.X,Y=self.Y,T=self.T,n_bootstraps=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ',self.pval,)
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat]*self.training_params['permutations']
+
+
+class baseline_gformula(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_gformula, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        self.X, self.T, self.Y=X,T,Y
+    def run_test(self, seed):
+        # train classifier
+        self.test = gformula_baseline_test(X=self.X,Y=self.Y,T=self.T,n_bootstraps=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ',self.pval,)
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat]*self.training_params['permutations']
+
+
+class baseline_tmle(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_tmle, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        self.X, self.T, self.Y=X,T,Y
+    def run_test(self, seed):
+        # train classifier
+        self.test = tmle_baseline_test(X=self.X,Y=self.Y,T=self.T,n_bootstraps=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ',self.pval,)
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat]*self.training_params['permutations']
+
+
+class baseline_ipw(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_ipw, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        self.X, self.T, self.Y=X,T,Y
+
+    def run_test(self, seed):
+        # train classifier
+        self.test = iptw_baseline_test(X=self.X,Y=self.Y,T=self.T,n_bootstraps=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ',self.pval,)
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat]*self.training_params['permutations']
+
+class baseline_CF(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_CF, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        # self.X, self.T, self.Y = X, T, Y
+
+    def run_test(self, seed):
+        # train classifier
+        self.test = CausalForest_baseline_test(self.tr_X_cont,self.T_tr,self.tr_Y,self.val_X_cont,self.tst_X_cont,bootstrap=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ', self.pval, )
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat] * self.training_params['permutations']
+
+class baseline_BART(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_BART, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        # self.X, self.T, self.Y = X, T, Y
+
+    def run_test(self, seed):
+        self.test = BART_baseline_test(self.tr_X_cont,self.tr_T,self.tr_Y,self.val_X_cont,self.val_T,self.tst_X_cont,self.tst_T,bootstrap=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        print('pval: ', self.pval, )
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat] * self.training_params['permutations']
+
+
 class experiment_object:
     def __init__(self,experiment_save_path,data_dir_load,num_exp,nn_params,training_params,cat_cols,test_type='baseline',debug_mode=False):
         self.experiment_save_path= experiment_save_path
@@ -228,6 +325,18 @@ class experiment_object:
                 tst = baseline_test_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='doubleml':
                 tst =baseline_double_ml(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='vanilla_dr':
+                tst =baseline_vanilla_dr(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='gformula':
+                tst =baseline_gformula(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='tmle':
+                tst =baseline_tmle(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='ipw':
+                tst =baseline_ipw(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='cf':
+                tst =baseline_CF(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='bart':
+                tst =baseline_BART(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
 
             if self.debug_mode:
                 out = tst.run_test(seed)

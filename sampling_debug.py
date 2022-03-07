@@ -1,17 +1,14 @@
 import numpy as np
-from tmle_baseline.vanilla_IPW import IPTW_pval
 from data_generation.data_generation import *
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
-# from zepid.causal.ipw import IPTW, IPMW
-from zepid.causal.doublyrobust import AIPTW, TMLE
-from vanilla_doublyrobust_baseline.vanilla_dr import doubly_robust
-# from sklearn.ensemble import RandomForestClassifier
-# from zepid.superlearner import GLMSL, StepwiseSL, SuperLearner
-# from zepid.causal.doublyrobust import SingleCrossfitAIPTW, SingleCrossfitTMLE
-# import statsmodels.api as sm
-
+from vanilla_doublyrobust_baseline.vanilla_dr import *
+from tmle_baseline.g_formula import *
+from tmle_baseline.tmle_baseline import *
+from tmle_baseline.vanilla_IPW import *
+from CausalForest.causal_forest import *
+from BART_baseline.BART import *
 
 sns.set()
 
@@ -24,6 +21,32 @@ def debug_plot_treatments(T,Y):
     sns.histplot(data=df,x='Y',hue='T',bins=50)
     plt.show()
 
+def debug_different_models(X,T,Y):
+    # c_1 = vanilla_dr_baseline_test(X,T,Y,n_bootstraps=250)
+    # pval,stat=c_1.permutation_test()
+    # print(pval,stat)
+    # c_2 = gformula_baseline_test(X, T, Y, n_bootstraps=250)
+    # pval, stat = c_2.permutation_test()
+    # print(pval,stat)
+    #
+    #
+    # c_3 = iptw_baseline_test(X, T, Y, n_bootstraps=250)
+    # pval, stat = c_3.permutation_test()
+    # print(pval,stat)
+    #
+    # c_4 = tmle_baseline_test(X, T, Y, n_bootstraps=250)
+    # pval, stat = c_4.permutation_test()
+    # print(pval,stat)
+
+
+    # c_6 = BART_baseline_test(X, T, Y,X,T,X,T,bootstrap=250)
+    # pval, stat = c_6.permutation_test()
+    # print(pval,stat)
+
+
+    c_5 = CausalForest_baseline_test(X, T, Y,X,X,bootstrap=250)
+    pval, stat = c_5.permutation_test()
+    print(pval,stat)
 
 if __name__ == '__main__':
     s=0
@@ -54,7 +77,9 @@ if __name__ == '__main__':
     dfs = pd.DataFrame(np.concatenate([X, Y, T], axis=1), columns=columns)
     n_bootstraps = 250
 
-    print(doubly_robust(dfs,X=x_col,T='D',Y='Y'))
+    debug_different_models(X,T,Y)
+
+    # print(doubly_robust(dfs,X=x_col,T='D',Y='Y'))
 
     # g = TimeFixedGFormula(dfs, exposure='D', outcome='Y')
     # g.outcome_model(model='D' + cov_string,
@@ -88,21 +113,7 @@ if __name__ == '__main__':
     # tmle.fit()
     # tmle.summary()
 
-    # labels = ["LogR", "Step.int"]
-    # candidates = [GLMSL(sm.families.family.Binomial()),
-    #               StepwiseSL(sm.families.family.Binomial(), selection="forward", order_interaction=0),
-    #               # RandomForestClassifier()
-    #               ]
-    #
-    # sctmle = SingleCrossfitTMLE(dfs, exposure='D', outcome='Y')
-    # sctmle.exposure_model(cov_string,
-    #                       SuperLearner(candidates, labels, folds=10, loss_function="nloglik",verbose=True),
-    #                       bound=0.01)
-    # sctmle.outcome_model(cov_string,
-    #                      SuperLearner(candidates, labels, folds=10, loss_function="nloglik",verbose=True))
-    # sctmle.fit()
-    #
-    # sctmle.summary()
+
 
     #DONT PERMUTE THE E WEIGHTS!
 

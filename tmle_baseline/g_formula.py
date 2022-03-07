@@ -1,10 +1,6 @@
 import numpy as np
 import pandas as pd
-# from zepid import load_sample_data, spline, RiskDifference
 from zepid.causal.gformula import TimeFixedGFormula, SurvivalGFormula
-# from zepid.causal.ipw import IPTW, IPMW
-# from zepid.causal.snm import GEstimationSNM
-# from zepid.causal.doublyrobust import AIPTW, TMLE
 from doubly_robust_method.utils import testing_class
 
 class gformula_baseline_test():
