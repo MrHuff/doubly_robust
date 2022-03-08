@@ -1,23 +1,29 @@
-import Kernel as kernel_utils
+import torch
+
+from WMMD.Kernel import KGauss
 from cvxopt import matrix, solvers
 import math
 import random
 import numpy as np
 
+from doubly_robust_method.kernels import Kernel
+k_init=Kernel()
 
 class WMMDTest:
     """
     Weighted MMD test where the null distribution is computed by permutation.
     """
-
-    def __init__(self,X,T,Y, n_bootstraps kernel, kernel_x, n_permute=400):
+    def __init__(self,X,T,Y, n_permute=250):
         """
         kernel:     an instance of the Kernel class in 'kernel_utils' to be used for defining a distance between y                     samples 
         kernel_x: an instance of the Kernel class in 'kernel_utils' to be used for defining a distance between x                     samples 
         n_permute:  number of times to do permutation
         """
-        self.kernel = kernel
-        self.kernel_x = kernel_x
+        x_ls = k_init.get_median_ls(torch.from_numpy(X))
+        y_ls = k_init.get_median_ls(torch.from_numpy(Y))
+
+        self.kernel = KGauss(y_ls.item())
+        self.kernel_x = KGauss(x_ls.item())
         self.n_permute = n_permute
         self.X=X
         self.Y=Y
@@ -28,7 +34,7 @@ class WMMDTest:
 
         k = self.kernel 
 
-        if weights == None:
+        if weights is None:
 
             weights = np.ones(self.n)
 
@@ -38,7 +44,7 @@ class WMMDTest:
         K_01 = k.eval(Y0,Y1)
         K_11 = k.eval(Y1,Y1)
         K_00 = np.outer(weights,weights)*K_00
-        K_01 = np.outer(weights,np.ones(Y1.shape([0])))*K_01
+        K_01 = np.outer(weights,np.ones(Y1.shape[0]))*K_01
         n = K_00.shape[0]
         m = K_11.shape[0]
 
@@ -47,27 +53,27 @@ class WMMDTest:
 
         return mmd_squared
 
-    def permutation_test(self,B=10):
+    def permutation_test(self):
         X=self.X
-        T=self.T
-        X0= X[[t==0 for t in T]]
-        X1= X[[t==1 for t in T]]
+        T=self.T.squeeze()
+        X0= X[T==0,:]
+        X1= X[T==1,:]
         weights, _ = WMMDTest.kernel_mean_matching(X0, X1, self.kernel_x)
         self.test_stat= self.compute_weighted_mmd(self.Y ,T ,weights = weights)
         perm_stat=[]
 
         for i in range(self.n_permute):
-            T= np.random.permutation(T)
-            X0= X[[t==0 for t in T]]
-            X1= X[[t==1 for t in T]]
+            T= np.random.permutation(T).squeeze()
+            X0= X[T==0,:]
+            X1= X[T==1,:]
             weights, _ = WMMDTest.kernel_mean_matching(X0, X1, self.kernel_x)
             perm_stat.append(self.compute_weighted_mmd(self.Y ,T ,weights = weights))
         p_value = np.mean(self.test_stat > perm_stat)
 
-    return p_value, self.test_stat
+        return p_value, self.test_stat
 
     @staticmethod
-    def kernel_mean_matching(X0, X1, kx, B=10, eps=None):
+    def kernel_mean_matching(X1, X2, kx, B=10, eps=None):
         '''
         An implementation of Kernel Mean Matching, note that this implementation uses its own kernel parameter
         References:

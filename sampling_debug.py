@@ -9,7 +9,7 @@ from tmle_baseline.tmle_baseline import *
 from tmle_baseline.vanilla_IPW import *
 from CausalForest.causal_forest import *
 from BART_baseline.BART import *
-
+from WMMD.WMMD import WMMDTest
 sns.set()
 
 def debug_plot_weights(T,w_true):
@@ -44,10 +44,13 @@ def debug_different_models(X,T,Y):
     # print(pval,stat)
 
 
-    c_5 = CausalForest_baseline_test(X, T, Y,X,X,bootstrap=250)
-    pval, stat = c_5.permutation_test()
-    print(pval,stat)
+    # c_5 = CausalForest_baseline_test(X, T, Y,X,X,bootstrap=250)
+    # pval, stat = c_5.permutation_test()
+    # print(pval,stat)
 
+    c7=WMMDTest(X,T,Y,250)
+    pval,stat=c7.permutation_test()
+    print(pval,stat)
 if __name__ == '__main__':
     s=0
     D=5
@@ -66,53 +69,7 @@ if __name__ == '__main__':
     T, Y, X, w_true = case_1_robin(**base_config)
     debug_plot_weights(T,w_true)
     debug_plot_treatments(T,Y)
-
-    # n, d = X.shape
-    # columns = [f'x_{i}' for i in range(d)] + ['Y'] + ['D']
-    # x_col = [f'x_{i}' for i in range(d)]
-    # cov_string = ''
-    # for i in range(d):
-    #     cov_string += f' + x_{i}'
-    #
-    # dfs = pd.DataFrame(np.concatenate([X, Y, T], axis=1), columns=columns)
-    # n_bootstraps = 250
-    #
-    # debug_different_models(X,T,Y)
-
-    # print(doubly_robust(dfs,X=x_col,T='D',Y='Y'))
-
-    # g = TimeFixedGFormula(dfs, exposure='D', outcome='Y')
-    # g.outcome_model(model='D' + cov_string,
-    #                 print_results=False)
-    # # Estimating marginal effect under treat-all plan
-    # g.fit(treatment='all')
-    # r_all = g.marginal_outcome
-    #
-    # # Estimating marginal effect under treat-none plan
-    # g.fit(treatment='none')
-    # r_none = g.marginal_outcome
-    #
-    # print(r_none,r_all)
-    #
-    # ref_stat = r_all - r_none
-    # print(ref_stat)
-
-    # iptw = IPTW_pval(dfs, treatment='D',outcome='Y')
-    # iptw.treatment_model(cov_string,
-    #                      print_results=False)
-    #
-    # iptw.marginal_structural_model('D')
-    # iptw.fit_pval()
-    # iptw.summary()
-    # print(iptw.average_treatment_effect.iloc[1,0])
-
-    # tmle = TMLE(dfs, exposure='D', outcome='Y')
-    # tmle.exposure_model(cov_string)
-    # tmle.missing_model(cov_string+' + D')
-    # tmle.outcome_model('D' + cov_string)
-    # tmle.fit()
-    # tmle.summary()
-
+    debug_different_models(X,T,Y)
 
 
     #DONT PERMUTE THE E WEIGHTS!
