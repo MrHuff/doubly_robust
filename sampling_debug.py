@@ -44,9 +44,6 @@ def debug_different_models(X,T,Y):
     print(pval,stat)
 
 
-    c_5 = CausalForest_baseline_test(X, T, Y,bootstrap=250)
-    pval, stat = c_5.permutation_test()
-    print(pval,stat)
 
     c7=WMMDTest(X,T,Y,250)
     pval,stat=c7.permutation_test()
@@ -119,7 +116,6 @@ if __name__ == '__main__':
     # tmle.outcome_model('D' + cov_string)
     # tmle.fit()
     # tmle.summary()
-
 
     #DONT PERMUTE THE E WEIGHTS!
 
