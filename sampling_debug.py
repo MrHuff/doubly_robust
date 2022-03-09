@@ -9,7 +9,7 @@ from tmle_baseline.tmle_baseline import *
 from tmle_baseline.vanilla_IPW import *
 from CausalForest.causal_forest import *
 from BART_baseline.BART import *
-
+from WMMD.WMMD import WMMDTest
 sns.set()
 
 def debug_plot_weights(T,w_true):
@@ -48,6 +48,9 @@ def debug_different_models(X,T,Y):
     pval, stat = c_5.permutation_test()
     print(pval,stat)
 
+    c7=WMMDTest(X,T,Y,250)
+    pval,stat=c7.permutation_test()
+    print(pval,stat)
 if __name__ == '__main__':
     s=0
     D=5
@@ -116,7 +119,6 @@ if __name__ == '__main__':
     # tmle.outcome_model('D' + cov_string)
     # tmle.fit()
     # tmle.summary()
-
 
 
     #DONT PERMUTE THE E WEIGHTS!
