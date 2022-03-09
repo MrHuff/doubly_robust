@@ -14,7 +14,8 @@ class tmle_baseline_test():
             self.cov_string+=f' + x_{i}'
         self.dfs = pd.DataFrame(np.concatenate([X,Y,T],axis=1),columns=columns)
         self.n_bootstraps = n_bootstraps
-
+        self.X,self.T,self.Y = X,T,Y
+        self.columns = columns
 
         tmle = TMLE(self.dfs, exposure='D', outcome='Y')
         tmle.exposure_model(self.cov_string, print_results=False)
@@ -27,7 +28,9 @@ class tmle_baseline_test():
     def permutation_test(self):
         rd_results = []
         for i in range(self.n_bootstraps):
-            s = self.dfs.sample(n=self.n, replace=True)
+            Y = np.random.permutation(self.Y)
+            s = pd.DataFrame(np.concatenate([self.X,Y,self.T],axis=1),columns=self.columns)
+            # s = self.dfs.sample(n=self.n, replace=True)
             tmle = TMLE(s, exposure='D', outcome='Y')
             tmle.exposure_model(self.cov_string, print_results=False)
             tmle.outcome_model('D' + self.cov_string, print_results=False)

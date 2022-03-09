@@ -75,8 +75,8 @@ def get_perm(s,n,m,X_in,Y_in,Z):
         os.makedirs(f'datasets/twins_{m}_null')
     np.random.seed(s)
     perm_vec = np.random.permutation(n)[:m]
-    T= X_in[perm_vec]
-    Y=Y_in[perm_vec]
+    T= X_in[perm_vec][:,np.newaxis]
+    Y=Y_in[perm_vec][:,np.newaxis]
     X=Z[perm_vec,:]
     with open(f'datasets/twins_{m}/job_{s}.pickle', 'wb') as handle:
         pickle.dump({'seed': s, 'T': T, 'Y': Y, 'X': X, 'W': T}, handle, protocol=pickle.HIGHEST_PROTOCOL)

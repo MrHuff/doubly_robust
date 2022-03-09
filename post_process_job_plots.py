@@ -24,6 +24,9 @@ def extract_bdn(str):
     el_list= re.findall(r"[-+]?(?:\d*\.\d+|\d+)",str)
     return el_list[0],el_list[1],el_list[2]
 
+def extract_dataset_method(str):
+    pass
+
 def get_method(tp,neural_cme,double_cme,oracle_weights,method):
     method_str=''
     if oracle_weights:
@@ -42,18 +45,22 @@ def get_method(tp,neural_cme,double_cme,oracle_weights,method):
 def get_job_df(job_path):
     jobs = os.listdir(job_path)
     data = []
-    columns = ['tp','neural_cme','double_estimate_kme','oracle_weights','method','b','D','n','pval_001','pval_005','pval_01','KS_pval','KS_stat']
+    columns = ['dataset','tp','neural_cme','double_estimate_kme','oracle_weights','method','b','D','n','pval_001','pval_005','pval_01','KS_pval','KS_stat']
     for j in jobs:
-        experiment_params = load_obj(j, folder=f'{job_path}/')
-        method=experiment_params['test_type']
-        ow=experiment_params['training_params']['oracle_weights']
-        dek=experiment_params['training_params']['double_estimate_kme']
-        tp=experiment_params['training_params']['epochs']==100
-        ncme=experiment_params['training_params']['neural_cme']
-        b,d,n=extract_bdn(j)
-        df= pd.read_csv(experiment_params['experiment_save_path']+f'/final_res.csv',index_col=0).values.tolist()[0]
-        row = [tp,ncme,dek,ow,method,b,d,n]+df
-        data.append(row)
+        try:
+            experiment_params = load_obj(j, folder=f'{job_path}/')
+            method=experiment_params['test_type']
+            ow=experiment_params['training_params']['oracle_weights']
+            dek=experiment_params['training_params']['double_estimate_kme']
+            tp=experiment_params['training_params']['epochs']==100
+            ncme=experiment_params['training_params']['neural_cme']
+            b,d,n=extract_bdn(j)
+            ds = j.split(method)[0][0:-1]
+            df= pd.read_csv(experiment_params['experiment_save_path']+f'/final_res.csv',index_col=0).values.tolist()[0]
+            row = [ds,tp,ncme,dek,ow,method,b,d,n]+df
+            data.append(row)
+        except Exception as e:
+            pass
     job_df = pd.DataFrame(data,columns=columns)
     full_method = []
     for i,r in job_df.iterrows():
@@ -85,29 +92,34 @@ class subfigure(Environment):
         super().__init__(options=position,arguments=width, **kwargs)
 
 dict_method = {''}
-def plot_2_est_weights(dir,df,d_list,methods,nlist,tname='pval_005'):
+def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
 
     if not os.path.exists(dir):
         os.makedirs(dir)
-    for d in d_list:
-        subset = df[df['D']==d].sort_values(['b'])
-        for n in nlist:
-            subset_2 = subset[subset['n'] == n]
-            for col_index,method in enumerate(methods):
-                subset_3 = subset_2[subset_2['mname']==method]
-                a,b,e = calc_error_bars(subset_3[tname],alpha=0.05,num_samples=100)
-                plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
-                # plt.plot('beta_xy','p_a=0.05',data=subset_3,linestyle='-',label=rf'{format_string}',c = col_dict[method])
+    for dataset in data_list:
+        df = big_df[big_df['dataset']==dataset]
+        for d in d_list:
+            subset = df[df['D']==d].sort_values(['b'])
+            for n in nlist:
+                subset_2 = subset[subset['n'] == n]
+                for col_index,method in enumerate(methods):
+                    try:
+                        subset_3 = subset_2[subset_2['mname']==method]
+                        a,b,e = calc_error_bars(subset_3[tname],alpha=0.05,num_samples=100)
+                        plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
+                        # plt.plot('beta_xy','p_a=0.05',data=subset_3,linestyle='-',label=rf'{format_string}',c = col_dict[method])
 
-                plt.fill_between(subset_3['b'], a, b, alpha=0.1)
-                # plt.fill_between(subset_3['beta_xy'], a, b, alpha=0.1,color=col_dict[method])
-            plt.hlines(0.05, 0, subset_2['b'].max())
-            plt.legend(prop={'size': 10})
-            plt.xlabel(r'$\beta_{XY}$')
-            plt.ylabel('Power')
-            plt.savefig(f'{dir}/figure_{d}_{n}.png',bbox_inches = 'tight',
-        pad_inches = 0.05)
-            plt.clf()
+                        plt.fill_between(subset_3['b'], a, b, alpha=0.1)
+                    except Exception as e:
+                        print('whoopsie')
+                    # plt.fill_between(subset_3['beta_xy'], a, b, alpha=0.1,color=col_dict[method])
+                plt.hlines(0.05, 0, subset_2['b'].max())
+                plt.legend(prop={'size': 10})
+                plt.xlabel(r'$\beta_{XY}$')
+                plt.ylabel('Power')
+                plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
+            pad_inches = 0.05)
+                plt.clf()
 
 
 def generate_tex_plot(nlist):
@@ -139,12 +151,15 @@ def generate_tex_plot(nlist):
     doc.generate_tex()
 
 if __name__ == '__main__':
-    job_path='recreate_krik_big'
+    job_path='all_gpu_baselines'
     df = get_job_df(job_path)
-    plot_2_est_weights(dir='krik_big_2',df=df,
+    print(df)
+    plot_2_est_weights(dir='all_gpu_baselines_plots',big_df=df,
                        d_list=df['D'].unique().tolist(),
                        methods=df['mname'].unique().tolist(),
-                       nlist=df['n'].unique().tolist())
+                       nlist=df['n'].unique().tolist(),
+                       data_list=df['dataset'].unique().tolist()
+                       )
 
 
 

@@ -16,7 +16,7 @@ class doubleML_baseline_test():
     def permutation_test(self):
         self.dml_irm_obj.fit()
         pval= self.dml_irm_obj.summary['P>|t|'].item()
-        stat= self.dml_irm_obj.summary['P>|t|'].item()
+        stat= self.dml_irm_obj.summary['t'].item()
         return pval,stat
 
 

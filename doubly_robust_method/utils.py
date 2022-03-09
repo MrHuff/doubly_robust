@@ -16,7 +16,7 @@ from tmle_baseline.vanilla_IPW import *
 from CausalForest.causal_forest import *
 from BART_baseline.BART import *
 
-
+import torch
 class testing_class():
     def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
         #split data
@@ -105,6 +105,9 @@ class testing_class():
             self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
             self.perm_e = self.e# self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
 
+            self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
+            self.perm_e = torch.nan_to_num(self.perm_e, nan=0.5, posinf=0.5)
+
         self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
 
         if self.training_params['double_estimate_kme']:
@@ -162,6 +165,8 @@ class baseline_test_class(testing_class):
             self.classifier.fit(self.training_params['patience'])
             print('classifier val auc: ', self.classifier.best)
             self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+            self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
+
         self.test=baseline_test_gpu(self.tst_Y,e=self.e,T=self.tst_T,permutations=self.training_params['permutations'])
         perm_stats,self.tst_stat = self.test.permutation_test()
         self.perm_stats = perm_stats
@@ -248,11 +253,11 @@ class baseline_ipw(testing_class):
 class baseline_CF(testing_class):
     def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
         super(baseline_CF, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
-        # self.X, self.T, self.Y = X, T, Y
+        self.X, self.T, self.Y = X, T, Y
 
     def run_test(self, seed):
         # train classifier
-        self.test = CausalForest_baseline_test(self.tr_X_cont,self.T_tr,self.tr_Y,self.val_X_cont,self.tst_X_cont,bootstrap=self.training_params['permutations'])
+        self.test = CausalForest_baseline_test(X_tr=self.X,T_tr=self.T,Y_tr=self.Y,bootstrap=self.training_params['permutations'])
         self.pval, self.tst_stat = self.test.permutation_test()
         # self.perm_stats = perm_stats
         # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)

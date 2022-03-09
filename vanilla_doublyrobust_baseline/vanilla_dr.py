@@ -24,15 +24,18 @@ class vanilla_dr_baseline_test():
         # self.cov_string =''
         # for i in range(self.d):
         #     self.cov_string+=f' + x_{i}'
+        self.X,self.T,self.Y = X,T,Y
+        self.columns = columns
         self.dfs = pd.DataFrame(np.concatenate([X,T,Y],axis=1),columns=columns)
         self.n_bootstraps = n_bootstraps
         self.x_col = [f'x_{i}' for i in range(self.d)]
         self.ref_stat = doubly_robust(self.dfs,X=self.x_col,T='D',Y='Y')
-
+    #TODO, when permuting just go back to what we did
     def permutation_test(self):
         rd_results = []
         for i in range(self.n_bootstraps):
-            s = self.dfs.sample(n=self.n, replace=True)
+            Y = np.random.permutation(self.Y)
+            s = pd.DataFrame(np.concatenate([self.X,self.T,Y],axis=1),columns=self.columns)
             stat = doubly_robust(s,self.x_col,'D','Y')
             rd_results.append(stat)
         rd_results = np.array(rd_results)

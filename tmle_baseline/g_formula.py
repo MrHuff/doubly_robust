@@ -11,6 +11,8 @@ class gformula_baseline_test():
         for i in range(self.d):
             self.cov_string+=f' + x_{i}'
 
+        self.X,self.T,self.Y = X,T,Y
+        self.columns = columns
 
         self.dfs = pd.DataFrame(np.concatenate([X,Y,T],axis=1),columns=columns)
         self.n_bootstraps = n_bootstraps
@@ -31,7 +33,8 @@ class gformula_baseline_test():
     def permutation_test(self):
         rd_results = []
         for i in range(self.n_bootstraps):
-            s = self.dfs.sample(n=self.n, replace=True)
+            Y = np.random.permutation(self.Y)
+            s = pd.DataFrame(np.concatenate([self.X,Y,self.T],axis=1),columns=self.columns)
             g = TimeFixedGFormula(s, exposure='D', outcome='Y')
             g.outcome_model(model='D'+self.cov_string,
                             print_results=False)

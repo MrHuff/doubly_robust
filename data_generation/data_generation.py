@@ -162,21 +162,21 @@ def case_distributional(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b)
     Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
     T = bernoulli.rvs(Prob_vec)
     Z = bernoulli.rvs(0.5, size=len(T))
-    Y = np.dot(beta_vec, X.T) + (2 * Z - 1) + noise_var * np.random.randn(ns)
+    Y = np.dot(beta_vec, X.T) +b*T*(2 * Z - 1) + noise_var * np.random.randn(ns)
     YY = Y[:, np.newaxis]
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
 
 
-def case_distributional_bdhsic(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # breaking cme's i.e. bd-HSIC case
-    np.random.seed(seed)
-    X = np.random.randn(ns, d)
-    sig_X = expit(X)
-    sig_X_neg = expit(-X)
-    T = bernoulli.rvs(sig_X)
-    Y =  np.rando.normal((2 * T - 1) * np.abs(X) * b, 0.05 ** 0.5,ns)
-    Prob_vec = np.where(T == 1, 1 / (2 * sig_X), 1 / (2 * sig_X_neg))
-    YY = Y[:, np.newaxis]
-    return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+# def case_distributional_bdhsic(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # breaking cme's i.e. bd-HSIC case
+#     np.random.seed(seed)
+#     X = np.random.randn(ns, d)
+#     sig_X = expit(X)
+#     sig_X_neg = expit(-X)
+#     T = bernoulli.rvs(sig_X)
+#     Y =  np.random.normal((2 * T - 1) * np.abs(X) * b, 0.05 ** 0.5,ns)
+#     Prob_vec = np.where(T == 1, 1 / (2 * sig_X), 1 / (2 * sig_X_neg))
+#     YY = Y[:, np.newaxis]
+#     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
 
 
 
