@@ -1,10 +1,11 @@
 import torch
-
 from WMMD.Kernel import KGauss
-from cvxopt import matrix, solvers
+from qpth.qp import QPFunction
 import math
 import random
 import numpy as np
+from torch.autograd import Variable
+
 
 from doubly_robust_method.kernels import Kernel
 k_init=Kernel()
@@ -58,7 +59,7 @@ class WMMDTest:
         T=self.T.squeeze()
         X0= X[T==0,:]
         X1= X[T==1,:]
-        weights, _ = WMMDTest.kernel_mean_matching(X0, X1, self.kernel_x)
+        weights= WMMDTest.kernel_mean_matching(X0, X1, self.kernel_x)
         self.test_stat= self.compute_weighted_mmd(self.Y ,T ,weights = weights)
         perm_stat=[]
 
@@ -66,7 +67,7 @@ class WMMDTest:
             T= np.random.permutation(T).squeeze()
             X0= X[T==0,:]
             X1= X[T==1,:]
-            weights, _ = WMMDTest.kernel_mean_matching(X0, X1, self.kernel_x)
+            weights= WMMDTest.kernel_mean_matching(X0, X1, self.kernel_x)
             perm_stat.append(self.compute_weighted_mmd(self.Y ,T ,weights = weights))
         p_value = np.mean(self.test_stat > perm_stat)
 
@@ -94,14 +95,12 @@ class WMMDTest:
         K = kx.eval(X1, X1)
         kappa = np.sum(kx.eval(X1, X2), axis=1) * float(nx1) / float(nx2)
         
-        K = matrix(K)
-        kappa = matrix(kappa)
-        G = matrix(np.r_[np.ones((1, nx1)), -np.ones((1, nx1)), np.eye(nx1), -np.eye(nx1)])
-        h = matrix(np.r_[nx1 * (1 + eps), nx1 * (eps - 1), B * np.ones((nx1,)), np.zeros((nx1,))])
-
-        solvers.options['show_progress'] = False
-        sol = solvers.qp(K, -kappa, G, h)
-        coef = np.array(sol['x'])
-        objective_value = sol['primal objective'] * 2 / (nx1**2) + np.sum(kx.eval(X2, X2)) / (nx2**2)
+        K = torch.from_numpy((K))
+        kappa = torch.from_numpy((kappa) )
+        G = torch.from_numpy((np.r_[np.ones((1, nx1)), -np.ones((1, nx1)), np.eye(nx1), -np.eye(nx1)]))
+        h = torch.from_numpy((np.r_[nx1 * (1 + eps), nx1 * (eps - 1), B * np.ones((nx1,)), np.zeros((nx1,))]))
+        e=Variable(torch.Tensor())
+       
+        coef = QPFunction(verbose=-1)(K, -kappa, G, h, e, e)
         
-        return coef, objective_value
+        return coef
