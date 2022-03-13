@@ -17,7 +17,10 @@ if __name__ == '__main__':
         case_1_xy_banana,
         case_1_xy_sin,
         case_1_robin,
-        case_distributional
+        case_distributional,
+        case_distributional_2,
+        case_distributional_3,
+        case_break_weights
     ]
     base_list=[
         {'seed': 0,
@@ -36,21 +39,36 @@ if __name__ == '__main__':
          # the thing just blows up regardless of what you do?!
          # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
          'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.1,  # Confounding
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
          'noise_var': 0.1,
          'b': 0
-         }]*5
+         }]*7 + [
+        {'seed': 0,
+                   'ns': 5000,
+                   'd': 0,
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 7.5,  # Treatment assignment
+                   # the thing just blows up regardless of what you do?!
+                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+                   'alpha_0': -1.5,  # 0.05,
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                   'noise_var': 0.1,
+                   'b': 0
+                   }]
     name_list =['unit_test',
           'conditions_satisfied',
           'banana',
-          'distributions',
           'sin',
           'robin',
-        ]
+        'distributions',
+        'distributions_uniform',
+        'distributions_gamma',
+        'nonlinear_treatment',
+                ]
 
     for (generator_function,base_config,name) in zip(gen_list,base_list,name_list):
-
         for (b,D,N) in p_list:
+            if name in ['distributions','distributions_uniform','distributions_gamma']:
+                b=b*10
             post_fix = f'b={b}_D={D}_{N}'
             job_name = 'datasets/'+f'{name}/'+post_fix
             if not os.path.exists(job_name):

@@ -93,18 +93,17 @@ class subfigure(Environment):
 
 dict_method = {''}
 def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
-
     if not os.path.exists(dir):
         os.makedirs(dir)
     for dataset in data_list:
         df = big_df[big_df['dataset']==dataset]
         for d in d_list:
-            subset = df[df['D']==d].sort_values(['b'])
+            subset = df[df['D']==d]
             for n in nlist:
                 subset_2 = subset[subset['n'] == n]
                 for col_index,method in enumerate(methods):
                     try:
-                        subset_3 = subset_2[subset_2['mname']==method]
+                        subset_3 = subset_2[subset_2['mname']==method].sort_values(['b'],ascending=True).reset_index()
                         a,b,e = calc_error_bars(subset_3[tname],alpha=0.05,num_samples=100)
                         plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
                         # plt.plot('beta_xy','p_a=0.05',data=subset_3,linestyle='-',label=rf'{format_string}',c = col_dict[method])
@@ -113,9 +112,11 @@ def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005
                     except Exception as e:
                         print('whoopsie')
                     # plt.fill_between(subset_3['beta_xy'], a, b, alpha=0.1,color=col_dict[method])
-                plt.hlines(0.05, 0, subset_2['b'].max())
+
+                # plt.figure(figsize=(15,15))
+                plt.hlines(0.05, 0,subset_3['b'].max())
                 plt.legend(prop={'size': 10})
-                plt.xlabel(r'$\beta_{XY}$')
+                plt.xlabel(r'$\beta_{TY}$')
                 plt.ylabel('Power')
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
@@ -150,16 +151,43 @@ def generate_tex_plot(nlist):
                 counter = 0
     doc.generate_tex()
 
+def gpu_post_process(fold_name,df):
+    mask_ow = df['mname'].apply(lambda x: 'ow' in x).values
+    df_ow =df[mask_ow]
+    df_not_ow =df[~mask_ow]
+    # df_ow = df[df['']]
+
+    plot_2_est_weights(dir=f'{fold_name}_ow',big_df=df_ow,
+                       d_list=df_ow['D'].unique().tolist(),
+                       methods=df_ow['mname'].unique().tolist(),
+                       nlist=df_ow['n'].unique().tolist(),
+                       data_list=df_ow['dataset'].unique().tolist()
+                       )
+    plot_2_est_weights(dir=f'{fold_name}_not_ow',big_df=df_not_ow,
+                       d_list=df_not_ow['D'].unique().tolist(),
+                       methods=df_not_ow['mname'].unique().tolist(),
+                       nlist=df_not_ow['n'].unique().tolist(),
+                       data_list=df_not_ow['dataset'].unique().tolist()
+                       )
+
 if __name__ == '__main__':
-    job_path='all_gpu_baselines'
+    """
+    GPU - postprocessing
+    """
+    job_path='all_gpu_baselines_2'
     df = get_job_df(job_path)
-    print(df)
-    plot_2_est_weights(dir='all_gpu_baselines_plots',big_df=df,
+    df['b']=df['b'].apply(lambda x: float(x))
+    gpu_post_process(job_path,df)
+
+
+    job_path='all_cpu_baselines'
+    df = get_job_df(job_path)
+    df['b']=df['b'].apply(lambda x: float(x))
+    plot_2_est_weights(dir=f'{job_path}_plots',big_df=df,
                        d_list=df['D'].unique().tolist(),
                        methods=df['mname'].unique().tolist(),
                        nlist=df['n'].unique().tolist(),
                        data_list=df['dataset'].unique().tolist()
                        )
-
 
 

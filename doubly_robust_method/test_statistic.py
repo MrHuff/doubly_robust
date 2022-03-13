@@ -34,6 +34,7 @@ class counterfactual_me_test():
         self.kme_1_indep=kme_1_indep
         self.kme_0_indep=kme_0_indep
         self.permute_e = permute_e
+        self.ls =general_ker_obj.get_median_ls(self.Y,self.Y)
 
         self.setup_Y_kernel(self.Y,'L',device)
         self.setup_Y_kernel(self.Y_0,'L_0',device)
@@ -52,8 +53,7 @@ class counterfactual_me_test():
 
     def setup_Y_kernel(self,Y,name,device):
         kernel = RBFKernel(Y).to(device)
-        ls =general_ker_obj.get_median_ls(Y,Y)
-        kernel._set_lengthscale(ls)
+        kernel._set_lengthscale(self.ls)
         L = kernel.evaluate()
         setattr(self,name,L)
         setattr(self,'kernel_'+name,kernel)

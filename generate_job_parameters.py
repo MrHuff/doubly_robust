@@ -29,15 +29,12 @@ def get_dir_name(dir_name,b,D,N):
     job_name = 'datasets/' + f'{dir_name}/' + post_fix
     return job_name,post_fix
 
-def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec):
+def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
-    methods=['baseline','doubly_robust']
-    # methods=['doubly_robust','doubleml']
-    # methods=['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
-    oracle_weights =[False,True]
+    oracle_weights =[True,False]
     double_estimate_kme=[False,True]
     neural_cmes=[False,True]
-    train_prop=[True,False]
+    train_prop=[False,True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
 
     if not os.path.exists(f'{job_dir}'):
@@ -45,6 +42,8 @@ def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec):
 
     for dir_name in dir_names:
         for (b,D,N) in num_list:
+            if dir_name in ['distributions','distributions_uniform','distributions_gamma']:
+                b=b*10
             data_dir,post_fix = get_dir_name(dir_name,b,D,N)
             data_indexing_string = dir_name+'_'+post_fix
             for (method,oracle_weight,de_kme,neural_cme,tp) in p_list:
@@ -84,8 +83,8 @@ def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec):
                 with open(f'{job_dir}/{dir_name}_{method}_{data_indexing_string}_{job_name}.pickle', 'wb') as handle:
                     pickle.dump(experiment_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def generate_parameters_real_datasets(job_dir,dir_names):
-    methods=['baseline','doubly_robust']
+def generate_parameters_real_datasets(job_dir,dir_names,methods):
+    # methods=['doubly_robust','baseline']
     # methods=['doubly_robust','doubleml']
     # methods=['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
     oracle_weights =[False]
@@ -144,10 +143,13 @@ def generate_all_cpu_baselines():
     ds = ['unit_test',
           'conditions_satisfied',
           'banana',
-          'distributions',
           'sin',
           'robin',
-        ]
+        'distributions',
+        'distributions_uniform',
+        'distributions_gamma',
+        'nonlinear_treatment',
+                ]
 
     ds_real = [
         'twins_2500',
@@ -158,8 +160,9 @@ def generate_all_cpu_baselines():
         'lalonde_100_null',
 
     ]
-    # generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec)
-    generate_parameters_real_datasets(f'all_cpu_real',ds_real)
+    methods = ['doubleml', 'vanilla_dr', 'gformula', 'tmle', 'ipw', 'cf', 'bart']
+    generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec,methods=methods)
+    generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods)
 
 def generate_all_gpu_baselines():
     bvec=[0.0,0.01,0.025,0.05,0.1]
@@ -168,11 +171,13 @@ def generate_all_gpu_baselines():
     ds = ['unit_test',
           'conditions_satisfied',
           'banana',
-          'distributions',
           'sin',
           'robin',
-        ]
-
+        'distributions',
+        'distributions_uniform',
+        'distributions_gamma',
+        'nonlinear_treatment',
+                ]
     ds_real = [
         'twins_2500',
         'twins_2500_null',
@@ -182,8 +187,9 @@ def generate_all_gpu_baselines():
         'lalonde_100_null',
 
     ]
-    # generate_parameters(f'all_gpu_baselines',ds,bvec,Dvec,Nvec)
-    generate_parameters_real_datasets(f'all_gpu_real',ds_real)
+    methods = ['doubly_robust','baseline']
+    generate_parameters(f'all_gpu_baselines_2',ds,bvec,Dvec,Nvec,methods)
+    generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods)
 if __name__ == '__main__':
     generate_all_cpu_baselines()
     generate_all_gpu_baselines()

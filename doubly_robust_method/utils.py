@@ -268,10 +268,10 @@ class baseline_CF(testing_class):
 class baseline_BART(testing_class):
     def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
         super(baseline_BART, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
-        # self.X, self.T, self.Y = X, T, Y
+        self.X, self.T, self.Y = X, T, Y
 
     def run_test(self, seed):
-        self.test = BART_baseline_test(self.tr_X_cont,self.tr_T,self.tr_Y,self.val_X_cont,self.val_T,self.tst_X_cont,self.tst_T,bootstrap=self.training_params['permutations'])
+        self.test = BART_baseline_test(X_tr=self.X,T_tr=self.T,Y_tr=self.Y,bootstrap=self.training_params['permutations'])
         self.pval, self.tst_stat = self.test.permutation_test()
         print('pval: ', self.pval, )
         output = [seed, self.pval, self.tst_stat]

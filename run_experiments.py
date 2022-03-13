@@ -5,7 +5,7 @@ import os
 
 if __name__ == '__main__':
 
-    fold = 'all_gpu_real'
+    fold = 'all_cpu_real'
     jobs = os.listdir(fold)
     jobs.sort()
     for job in jobs:

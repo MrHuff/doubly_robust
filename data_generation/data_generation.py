@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import expit
-from scipy.stats import bernoulli
+from scipy.stats import bernoulli,uniform,expon,gamma
 from baseline_cme.utils import gauss_rbf
 from sklearn.metrics import pairwise_distances
 PI = np.pi
@@ -130,11 +130,11 @@ def case_1a(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pa
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
 
 
-alpha_vec_2 = np.array([1.05,1.04,1.03,1.02,1.01])/50.
-def case_1c(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
+# alpha_vec_2 = np.array([1.05,1.04,1.03,1.02,1.01])/50.
+def case_break_weights(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
     np.random.seed(seed)
-    X = np.random.randn(ns, d)*3
-    Prob_vec = expit(np.dot(alpha_vec, X.T) + np.dot(alpha_vec_2, (X ** 2).T) + alpha_0)
+    X = np.random.randn(ns, d)
+    Prob_vec = expit(np.dot(alpha_vec, (X ** 2).T) + alpha_0)
     T = bernoulli.rvs(Prob_vec)
     y_cond_x = np.dot(beta_vec,X.T)
     Y = y_cond_x  + noise_var * np.random.randn(ns) + b * T #make CME get the job done on Y|X
@@ -154,8 +154,6 @@ def case_1b(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pa
     YY = Y[:, np.newaxis]
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
 
-
-
 def case_distributional(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 3
     np.random.seed(seed)
     X = np.random.randn(ns, d)
@@ -165,6 +163,33 @@ def case_distributional(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b)
     Y = np.dot(beta_vec, X.T) +b*T*(2 * Z - 1) + noise_var * np.random.randn(ns)
     YY = Y[:, np.newaxis]
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+
+def case_distributional_2(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):
+    np.random.seed(seed)
+    X = np.random.randn(ns, d)
+    Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
+    T = bernoulli.rvs(Prob_vec)
+    Z = uniform.rvs(loc=0,scale=2,size=len(T))
+    Y = np.dot(beta_vec, X.T) +b*T*(2*Z-2) + noise_var * np.random.randn(ns)
+    YY = Y[:, np.newaxis]
+    return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+
+def case_distributional_3(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):
+    np.random.seed(seed)
+    X = np.random.randn(ns, d)
+    Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
+    T = bernoulli.rvs(Prob_vec)
+    Z_1 = gamma.rvs(a=1,loc=2,scale=2,size=len(T))*0.1
+    mean, var, skew, kurt = gamma.stats(a=1,loc=2,scale=2, moments='mvsk')
+    print(mean)
+    # Z_1 = expon.rvs(loc=0.5,scale=0.5,size=len(T))*0.1
+    Z_2 = bernoulli.rvs(0.5, size=len(T))
+
+    Y = np.dot(beta_vec, X.T) +b*T*((2*Z_2-1)*0.1 + (-1)**(1-Z_2)*Z_1) + noise_var * np.random.randn(ns)
+    YY = Y[:, np.newaxis]
+    print(YY.mean())
+    return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
+
 
 
 # def case_distributional_bdhsic(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # breaking cme's i.e. bd-HSIC case

@@ -51,26 +51,26 @@ def debug_different_models(X,T,Y):
 if __name__ == '__main__':
     s=0
     D=5
-    b=0.1
-    base_config = {'seed': s,
-                   'ns': 5000,
-                   'd': D,
-                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
-                   # the thing just blows up regardless of what you do?!
-                   # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
-                   'alpha_0': 0.05,  # 0.05,
-                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
-                   'noise_var': 0.1,
-                   'b': b
-                   }
-    T, Y, X, w_true = case_distributional(**base_config)
+    b=1.0
+    base_config = {'seed': 0,
+         'ns': 5000,
+         'd': 5,
+         'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+         # the thing just blows up regardless of what you do?!
+         # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
+         'alpha_0': 0.05,  # 0.05,
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+         'noise_var': 0.1,
+         'b': b
+         }
+    T, Y, X, w_true = case_distributional_3(**base_config)
     debug_plot_weights(T,w_true)
     debug_plot_treatments(T,Y)
-    debug_different_models(X,T,Y)
-    print(T.shape)
-    print(X.shape)
-    print(Y.shape)
-    print(w_true.shape)
+    # debug_different_models(X,T,Y)
+    # print(T.shape)
+    # print(X.shape)
+    # print(Y.shape)
+    # print(w_true.shape)
     # n, d = X.shape
     # columns = [f'x_{i}' for i in range(d)] + ['Y'] + ['D']
     # x_col = [f'x_{i}' for i in range(d)]
