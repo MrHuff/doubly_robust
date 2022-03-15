@@ -20,8 +20,8 @@ class WMMDTest:
         kernel_x: an instance of the Kernel class in 'kernel_utils' to be used for defining a distance between x                     samples 
         n_permute:  number of times to do permutation
         """
-        x_ls = k_init.get_median_ls(torch.from_numpy(X))
-        y_ls = k_init.get_median_ls(torch.from_numpy(Y))
+        # x_ls = k_init.get_median_ls(torch.from_numpy(X))
+        # y_ls = k_init.get_median_ls(torch.from_numpy(Y))
 
         self.n_permute = n_permute
         self.B=10
@@ -36,7 +36,7 @@ class WMMDTest:
         self.h = torch.from_numpy((np.r_[self.nx1 * (1 + self.eps), self.nx1 * (self.eps - 1), self.B * np.ones((self.nx1,)), np.zeros((self.nx1,))])).float().to(device)
         #self.G=(np.r_[np.ones((1, self.nx1)), -np.ones((1, self.nx1)), np.eye(self.nx1), -np.eye(self.nx1)])
         #self.h =((np.r_[self.nx1 * (1 + self.eps), self.nx1 * (self.eps - 1), self.B * np.ones((self.nx1,)), np.zeros((self.nx1,))]))
-        self.h
+        # self.h
         self.setup_Y_kernel(self.Y,'Y',device)
         self.setup_Y_kernel(self.X,'X',device)
         self.e=Variable(torch.Tensor())
@@ -63,7 +63,7 @@ class WMMDTest:
         K_01 = self.kernel_Y(Y0,Y1)
         K_11 = self.kernel_Y(Y1,Y1)
         K_11 = (weights.T @ weights) * K_11
-        K_01 = ( torch.ones(Y1.shape[0])@ weights.T)*K_01
+        K_01 =  weights*K_01
         n = K_00.shape[0]
         m = K_11.shape[0]
 
