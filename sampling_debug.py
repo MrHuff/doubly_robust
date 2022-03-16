@@ -45,7 +45,7 @@ def debug_different_models(X,T,Y):
 
 
 
-    c7=WMMDTest(X,T,Y,250)
+    c7=WMMDTest(X,T,Y,device='cuda:0',n_permute=250)
     pval,stat=c7.permutation_test()
     print(pval,stat)
 if __name__ == '__main__':
