@@ -101,9 +101,9 @@ FIRST CASE - Outlier case
             base_config = {'seed': s,
                            'ns': N,
                            'd': D,
-                           'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,
+                           'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 0.5,
                            'alpha_0': 0.05,  # 0.05,
-                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
                            'noise_var': 0.1,
                            'b': b
                            }
@@ -116,11 +116,11 @@ SECOND CASE - Conditions satisfied
     base_config = {'seed': s,
                    'ns': 1000,
                    'd': D,
-                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
+                   'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 0.5,  # Treatment assignment
                    # the thing just blows up regardless of what you do?!
                    # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
                    'alpha_0': 0.05,  # 0.05,
-                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
                    'noise_var': 0.1,
                    'b': b
                    }
