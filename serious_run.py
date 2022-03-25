@@ -16,5 +16,5 @@ if __name__ == '__main__':
     print(jobs[idx])
     experiment_params = load_obj(jobs[idx],folder=f'{fold}/')
     c = experiment_object(**experiment_params)
-    c.debug_mode=True
+    c.debug_mode=False
     c.run_experiments()

@@ -210,4 +210,9 @@ class neural_kme_model():
         return self.calculate_error(X,L,cross)
 
 
+    def get_embedding(self,X_te,Y_te):
+        x_map_2 = self.feature_map(X_te)
+        L = self.l(Y_te,self.Y_tr)
+        w=x_map_2@self.store_part #Should be some sort of inner product no?
+        return w*L
 

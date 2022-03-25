@@ -3,14 +3,8 @@ import copy
 from torch.utils.data.dataset import Dataset
 from pycox.preprocessing.feature_transforms import *
 import torch
-import sklearn
-from sklearn.preprocessing import MinMaxScaler,StandardScaler
-from sklearn_pandas import DataFrameMapper
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
-import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn import metrics
+
 def categorical_transformer(X,cat_cols,cont_cols):
     c = OrderedCategoricalLong()
     for el in cat_cols:
@@ -24,6 +18,7 @@ def categorical_transformer(X,cat_cols,cont_cols):
     X_cont=X[cont_cols]
     X_cat=X[cat_cols]
     return X_cont,X_cat,unique_cat_cols
+
 class general_custom_dataset(Dataset):
     def __init__(self,X,y,x_cat=[]):
         super(general_custom_dataset, self).__init__()

@@ -40,23 +40,29 @@ def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods):
     if not os.path.exists(f'{job_dir}'):
         os.makedirs(f'{job_dir}')
 
+    dl = ['distributions','distributions_uniform','distributions_gamma','distributions_middle_ground']
+    dist_list = dl+[el+'_strong' for el in dl]
+
     for dir_name in dir_names:
-        for (b,D,N) in num_list:
-            if dir_name in ['distributions','distributions_uniform','distributions_gamma']:
-                b=b*10
-            data_dir,post_fix = get_dir_name(dir_name,b,D,N)
-            data_indexing_string = dir_name+'_'+post_fix
-            for (method,oracle_weight,de_kme,neural_cme,tp) in p_list:
-                if method=='baseline':
+        for (method, oracle_weight, de_kme, neural_cme, tp) in p_list:
+            for (b,D,N) in num_list:
+                if dir_name in dist_list:
+                    b=b*10
+                if method in ['baseline', 'baseline_correct']:
                     de_kme=False
                     neural_cme=False
                 if oracle_weight:
                     tp=False
-                if method in ['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']:
+                if method in ['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart','wmmd']:
                     de_kme=False
                     neural_cme=False
                     tp=True
                     oracle_weight=False
+                    if method=='wmmd':
+                        N=min(N,500)
+
+                data_dir, post_fix = get_dir_name(dir_name, b, D, N)
+                data_indexing_string = dir_name + '_' + post_fix
 
                 job_name=f'ow={oracle_weight}_dek={de_kme}_ncme={neural_cme}_tp={tp}'
                 training_params = {'bs': 100,
@@ -99,7 +105,7 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods):
     for dir_name in dir_names:
 
         for (method,oracle_weight,de_kme,neural_cme,tp) in p_list:
-            if method=='baseline':
+            if method in ['baseline','baseline_correct']:
                 de_kme=False
                 neural_cme=False
             if oracle_weight:
@@ -139,8 +145,8 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods):
 def generate_all_cpu_baselines():
     bvec=[0.0,0.01,0.025,0.05,0.1]
     Dvec=[5]
-    Nvec=[100,250,500,1000,2000,5000]
-    ds = ['unit_test',
+    Nvec=[500,5000]
+    dsl = ['unit_test',
           'conditions_satisfied',
           'banana',
           'sin',
@@ -150,6 +156,7 @@ def generate_all_cpu_baselines():
         'distributions_gamma',
         'nonlinear_treatment',
                 ]
+    ds = dsl+[el+'_strong' for el in dsl]
 
     ds_real = [
         'twins_2500',
@@ -165,10 +172,15 @@ def generate_all_cpu_baselines():
     generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods)
 
 def generate_all_gpu_baselines():
+    if not os.path.exists('all_gpu_baselines_2'):
+        os.makedirs('all_gpu_baselines_2')
+    if not os.path.exists('all_gpu_real'):
+        os.makedirs('all_gpu_real')
+
     bvec=[0.0,0.01,0.025,0.05,0.1]
     Dvec=[5]
-    Nvec=[100,250,500,1000,2000,5000]
-    ds = ['unit_test',
+    Nvec=[500,5000]
+    dsl = ['unit_test',
           'conditions_satisfied',
           'banana',
           'sin',
@@ -178,6 +190,7 @@ def generate_all_gpu_baselines():
         'distributions_gamma',
         'nonlinear_treatment',
                 ]
+    ds = dsl+[el+'_strong' for el in dsl]
     ds_real = [
         'twins_2500',
         'twins_2500_null',
@@ -187,7 +200,7 @@ def generate_all_gpu_baselines():
         'lalonde_100_null',
 
     ]
-    methods = ['doubly_robust','baseline']
+    methods = ['doubly_robust','wmmd','baseline','doubly_robust_correct','baseline_correct']
     generate_parameters(f'all_gpu_baselines_2',ds,bvec,Dvec,Nvec,methods)
     generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods)
 if __name__ == '__main__':

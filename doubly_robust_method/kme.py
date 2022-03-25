@@ -20,7 +20,8 @@ class learnable_kernel(torch.nn.Module):
 
     def inverse(self):
         middle_ker = self.evaluate()
-        return torch.inverse(middle_ker + self.eye * self.lamb),middle_ker
+        L =torch.cholesky_inverse(middle_ker+self.eye * self.lamb)
+        return torch.cholesky_inverse(L),middle_ker
 
 class kme_model():
     def __init__(self,X_tr,Y_tr,T_tr,X_val,Y_val,T_val,treatment_const,device='cuda:0'):
@@ -93,6 +94,13 @@ class kme_model():
             #     if self.count>self.patience:
             #         return
         return
+
+    def get_embedding(self,X_te,Y_te):
+        k_x = self.kernel(X_te,self.X_tr)
+        L = self.l(Y_te,self.Y_tr)
+        w=k_x@self.inv #Should be some sort of inner product no?
+        return w*L
+
     def get_middle_ker(self,X):
         middle_ker = self.kernel(self.X_tr, X)
         return middle_ker

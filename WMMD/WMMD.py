@@ -14,7 +14,7 @@ class WMMDTest:
     """
     Weighted MMD test where the null distribution is computed by permutation.
     """
-    def __init__(self,X,T,Y,device='cuda:0', n_permute=250):
+    def __init__(self,X,T,Y,device='cuda:0', n_bootstraps=250):
         """
         kernel:     an instance of the Kernel class in 'kernel_utils' to be used for defining a distance between y                     samples 
         kernel_x: an instance of the Kernel class in 'kernel_utils' to be used for defining a distance between x                     samples 
@@ -23,7 +23,7 @@ class WMMDTest:
         # x_ls = k_init.get_median_ls(torch.from_numpy(X))
         # y_ls = k_init.get_median_ls(torch.from_numpy(Y))
 
-        self.n_permute = n_permute
+        self.n_permute = n_bootstraps
         self.B=10
         self.X=torch.from_numpy(X).float().to(device)
         self.Y = torch.from_numpy(Y).float().to(device)

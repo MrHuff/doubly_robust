@@ -8,7 +8,7 @@ import itertools
 if __name__ == '__main__':
     bvec=[0.0,0.01,0.025,0.05,0.1]
     Dvec=[5]
-    Nvec=[100,250,500,1000,2000,5000]
+    Nvec=[500,5000]
     p_list = list(itertools.product(bvec,Dvec,Nvec))
 
     gen_list = [
@@ -29,7 +29,7 @@ if __name__ == '__main__':
          'd': 0,
          'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,
          'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
          'noise_var': 0.1,
          'b': 0
          },
@@ -38,7 +38,7 @@ if __name__ == '__main__':
            'd': 0,
            'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 10,
            'alpha_0': 0.05,  # 0.05,
-           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
            'noise_var': 0.1,
            'b': 0
            },
@@ -50,7 +50,7 @@ if __name__ == '__main__':
          # the thing just blows up regardless of what you do?!
          # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
          'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
          'noise_var': 0.1,
          'b': 0
          }]*7 + [
@@ -61,7 +61,7 @@ if __name__ == '__main__':
                    # the thing just blows up regardless of what you do?!
                    # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
                    'alpha_0': -1.5,  # 0.05,
-                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
                    'noise_var': 0.1,
                    'b': 0
                    }]
@@ -82,7 +82,7 @@ if __name__ == '__main__':
             if name in ['distributions_middle_ground','distributions','distributions_uniform','distributions_gamma']:
                 b=b*10
             post_fix = f'b={b}_D={D}_{N}'
-            job_name = 'datasets/'+f'{name}/'+post_fix
+            job_name = 'datasets/'+f'{name}_strong/'+post_fix
             if not os.path.exists(job_name):
                 os.makedirs(job_name)
             SEEDS=100

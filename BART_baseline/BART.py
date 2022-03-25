@@ -25,11 +25,14 @@ class BART_baseline_test():
 
 
     def calc_effect(self,x0,x1,est_0,est_1):
-        ref_mat_0 = est_0.predict(x0)
-        ref_mat_1 = est_1.predict(x1)
-        yhat_0= ref_mat_0.mean()
-        yhat_1= ref_mat_1.mean()
-        return yhat_1-yhat_0
+        ref_mat_0_0 = est_0.predict(x0)
+        ref_mat_0_1 = est_0.predict(x1)
+        ref_mat_1_0 = est_1.predict(x0)
+        ref_mat_1_1 = est_1.predict(x1)
+        pred_0=np.concatenate([ref_mat_0_0,ref_mat_0_1],axis=0)
+        pred_1=np.concatenate([ref_mat_1_0,ref_mat_1_1],axis=0)
+        #concat vectors then take mean
+        return (pred_1-pred_0).mean()
 
     def sep_dat(self,X,Y,T):
         mask_0 = (T==0).squeeze()

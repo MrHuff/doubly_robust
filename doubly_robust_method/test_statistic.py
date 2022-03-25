@@ -1,8 +1,12 @@
+import numpy as np
 import torch
 from doubly_robust_method.kernels import *
 from doubly_robust_method.kme import *
+from sklearn.preprocessing import KBinsDiscretizer
+
 general_ker_obj =Kernel()
 import random
+import copy
 def swap(xs, a, b):
     xs[a], xs[b] = xs[b], xs[a]
 
@@ -19,7 +23,6 @@ class counterfactual_me_test():
         self.n= Y.shape[0]
         self.Y = torch.from_numpy(Y).float().to(device)
         self.e =e.to(device)
-        self.perm_e = perm_e.to(device)
         self.T_1 = torch.from_numpy(T).float().to(device)
         self.T_0 =1.-self.T_1
         mask_1 = (self.T_1==1).squeeze()
@@ -107,8 +110,6 @@ class counterfactual_me_test():
         for i in range(self.permutations):
             perm_L,idx = self.get_permuted2d(self.L)
             if self.permute_e:
-                # e=self.perm_e[idx]
-                # self.create_all_weights(e)
                 X = self.X[idx]
                 self.calc_psi(X,self.kme_0_indep,self.kme_1_indep)
                 if self.debug_mode:
@@ -131,6 +132,62 @@ class counterfactual_me_test():
             print('average perm errors')
             print(running_err_0/self.permutations,running_err_1/self.permutations)
         return perm_stats,self.ref_stat.item()
+
+def permute(n_bins,og_indices,clusters):
+    permutation = copy.deepcopy(og_indices)
+    for i in range(n_bins):
+        mask = i==clusters
+        group = og_indices[mask]
+        permuted_group=np.random.permutation(group)
+        permutation[mask]=permuted_group
+    return permutation
+
+class counterfactual_me_test_correct(counterfactual_me_test):
+    def __init__(self,
+                 X,Y,e,perm_e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0',debug_mode=False):
+        super(counterfactual_me_test_correct, self).__init__(X,Y,e,perm_e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e,permutations,device,debug_mode)
+        self.og_indices=np.arange(X.shape[0])
+        self.n_bins=X.shape[0]//20
+        self.binner = KBinsDiscretizer(n_bins=self.n_bins, encode='ordinal', strategy='uniform')
+        numpy_e=e.cpu().numpy().squeeze()[:,np.newaxis]
+        self.clusters = self.binner.fit_transform(numpy_e).squeeze()
+
+    def get_permuted2d(self,ker):
+        idx = permute(self.n_bins,self.og_indices,self.clusters)
+        kernel_X = ker[:,idx]
+        kernel_X = kernel_X[idx,:]
+        return kernel_X,idx
+
+    def permutation_test(self):
+        perm_stats=[]
+        running_err_0 = 0.
+        running_err_1 = 0.
+        for i in range(self.permutations):
+            perm_L,idx = self.get_permuted2d(self.L)
+            if self.permute_e:
+                X = self.X[idx]
+                self.calc_psi(X,self.kme_0_indep,self.kme_1_indep)
+                if self.debug_mode:
+                    perm_Y  = self.Y[idx]
+                    perm_Y_0 = perm_Y[:self.Y_0.shape[0]]
+                    perm_Y_1 = perm_Y[self.Y_0.shape[0]:]
+                    perm_X_0 =X[:self.Y_0.shape[0]]
+                    perm_X_1 =X[self.Y_0.shape[0]:]
+                    perm_L_0 = self.kernel_L_0(perm_Y_0,perm_Y_0)
+                    perm_L_1 = self.kernel_L_1(perm_Y_1,perm_Y_1)
+                    a,b = self.sanity_check_estimates(perm_X_0,perm_X_1,self.kme_0_indep, self.kme_1_indep, perm_Y_0, perm_Y_1, perm_L_0,
+                                                      perm_L_1)
+                    running_err_0+=a
+                    running_err_1+=b
+            else:
+                e=self.e
+            tst = self.calculate_test_statistic(perm_L)
+            perm_stats.append(tst.item())
+        if self.debug_mode:
+            print('average perm errors')
+            print(running_err_0/self.permutations,running_err_1/self.permutations)
+        return perm_stats,self.ref_stat.item()
+
 
 if __name__ == '__main__':
     pass

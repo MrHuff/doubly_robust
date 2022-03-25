@@ -15,8 +15,10 @@ from tmle_baseline.tmle_baseline import *
 from tmle_baseline.vanilla_IPW import *
 from CausalForest.causal_forest import *
 from BART_baseline.BART import *
-
+from WMMD.WMMD import WMMDTest
 import torch
+general_ker_obj =Kernel()
+
 class testing_class():
     def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
         #split data
@@ -81,8 +83,30 @@ class testing_class():
         return kme_0,kme_1
 
 
+    def fit_class_and_embedding(self):
+        self.tr_Y = torch.from_numpy(self.tr_Y).to(self.training_params['device'])
+        ls_y = general_ker_obj.get_median_ls(self.tr_Y)
+        self.L_ker = RBFKernel().to(self.training_params['device'])
+        self.L_ker._set_lengthscale(ls_y)
+        if self.training_params['oracle_weights']:
+            self.e = torch.from_numpy(self.tst_W).float()
+            self.perm_e = self.e
+        else:
+            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                                   self.val_T, nn_params=self.nn_params,
+                                                   bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                   X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+            self.classifier.fit(self.training_params['patience'])
+            print('classifier val auc: ', self.classifier.best)
+            self.e_train = self.classifier.predict(self.tr_X_cont,self.tr_T,self.tr_X_cat)
+            self.e_train = torch.nan_to_num(self.e_train, nan=0.5, posinf=0.5)
+
+        self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
+
+
+
     def run_test(self,seed):
-        #train classifier
 
         if self.training_params['oracle_weights']:
             self.e = torch.from_numpy(self.tst_W).float()
@@ -102,7 +126,7 @@ class testing_class():
             # self.classifier_perm.fit(self.training_params['patience'])
             print('classifier val auc: ', self.classifier.best)
             # print('classifier perm val auc: ', self.classifier_perm.best)
-            self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+            self.e = self.classifier.predict(self.tst_X_cont,self.tst_T,self.tst_X_cat)
             self.perm_e = self.e# self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
 
             self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
@@ -116,7 +140,8 @@ class testing_class():
             self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T,True)
         else:
             self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
-        #run test
+
+
 
         self.test = counterfactual_me_test(X=self.tst_X,Y=self.tst_Y,perm_e=self.perm_e,e=self.e,T=self.tst_T,kme_1=self.kme_1,kme_0=self.kme_0,
                                            kme_0_indep=self.kme_0_indep,
@@ -131,6 +156,22 @@ class testing_class():
         self.pval = self.calculate_pval_symmetric(self.perm_stats,self.tst_stat )
         output = [seed,self.pval,self.tst_stat]
         return output+perm_stats
+
+    def filter_out_treatments(self,treatment_const,X_tr,T_tr,Y_tr):
+        X = torch.from_numpy(X_tr[T_tr.squeeze()==treatment_const,:]).float().to(self.training_params['device'])
+        Y = torch.from_numpy(Y_tr[T_tr.squeeze()==treatment_const]).float().to(self.training_params['device'])
+        return X,Y
+
+    def compute_expectation(self,kme_0,kme_1,y_te,t_te,x_te):
+        x_0_te,y_0_te = self.filter_out_treatments(0,x_te,t_te,y_te)
+        x_1_te,y_1_te = self.filter_out_treatments(1,x_te,t_te,y_te)
+        e_0 = self.e_train[self.tr_T==0]
+        e_1 = self.e_train[self.tr_T==1]
+        embedding_0=self.L_ker(y_0_te,self.tr_Y[self.tr_T==0]) * (1./e_0).unsqueeze(0) - ((1-e_0)/e_0).unsqueeze(0)*kme_0.get_embedding(x_0_te,y_0_te)
+        mu_0 = embedding_0.sum(1)
+        embedding_1=self.L_ker(y_1_te,self.tr_Y[self.tr_T==1]) * (1./e_1).unsqueeze(0) - ((1-e_1)/e_0).unsqueeze(0)*kme_1.get_embedding(x_1_te,y_1_te)
+        mu_1 = embedding_1.sum(1)
+        return mu_0,mu_1
 
     @staticmethod
     def calculate_pval_right_tail(bootstrapped_list, test_statistic):
@@ -147,9 +188,78 @@ class testing_class():
         pval = 2 * min([pval_left.item(), pval_right.item()])
         return pval
 
+class testing_class_correct(testing_class):
+    def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
+        super(testing_class_correct, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols)
+
+    def run_test(self,seed):
+        #train classifier
+
+
+        if self.training_params['oracle_weights']:
+            self.e = torch.from_numpy(self.tst_W).float()
+            self.perm_e = self.e
+        else:
+            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                                   self.val_T, nn_params=self.nn_params,
+                                                   bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                   X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+            # self.classifier_perm = propensity_estimator(self.tr_X_cont[perm_tr], self.tr_T, self.val_X_cont[perm_val],
+            #                                             self.val_T, nn_params=self.nn_params,
+            #                                             bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+            #                                             X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+            self.classifier.fit(self.training_params['patience'])
+            # self.classifier_perm.fit(self.training_params['patience'])
+            print('classifier val auc: ', self.classifier.best)
+            # print('classifier perm val auc: ', self.classifier_perm.best)
+            self.e = self.classifier.predict(self.tst_X_cont,self.tst_T,self.tst_X_cat)
+            self.perm_e = self.e# self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+
+            self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
+            self.perm_e = torch.nan_to_num(self.perm_e, nan=0.5, posinf=0.5)
+
+        self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
+
+        if self.training_params['double_estimate_kme']:
+            perm_tr = torch.randperm(self.tr_X.shape[0])
+            perm_val = torch.randperm(self.val_X.shape[0])
+            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T,True)
+        else:
+            self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
+
+        self.test = counterfactual_me_test_correct(X=self.tst_X,Y=self.tst_Y,perm_e=self.perm_e,e=self.e,T=self.tst_T,kme_1=self.kme_1,kme_0=self.kme_0,
+                                           kme_0_indep=self.kme_0_indep,
+                                           kme_1_indep=self.kme_1_indep,
+                                           permute_e=self.training_params['permute_e'],
+                                           permutations=self.training_params['permutations'],
+                                           device=self.training_params['device'],
+                                           debug_mode=self.training_params['debug_mode'])
+
+        perm_stats,self.tst_stat = self.test.permutation_test()
+        self.perm_stats = np.array(perm_stats)
+        self.pval = self.calculate_pval_symmetric(self.perm_stats,self.tst_stat )
+        output = [seed,self.pval,self.tst_stat]
+        return output+perm_stats
+
 class baseline_test_class(testing_class):
     def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]):
         super(baseline_test_class, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols=cat_cols)
+
+    def fit_class_and_embedding(self):
+        ls_y = general_ker_obj.get_median_ls(self.tr_Y)
+        self.L_ker = RBFKernel().to(self.training_params['device'])
+        self.L_ker._set_lengthscale(ls_y)
+        self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                               self.val_T, nn_params=self.nn_params,
+                                               bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                               X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+        self.classifier.fit(self.training_params['patience'])
+        print('classifier val auc: ', self.classifier.best)
+        self.e_train = self.classifier.predict(self.tr_X_cont, self.tr_T, self.tr_X_cat)
+        self.e_train = torch.nan_to_num(self.e_train, nan=0.5, posinf=0.5)
 
     def run_test(self,seed):
         #train classifier
@@ -174,6 +284,50 @@ class baseline_test_class(testing_class):
         output = [seed,self.pval,self.tst_stat]
         return output+perm_stats.tolist()
 
+    def filter_out_treatments(self,treatment_const,X_tr,T_tr,Y_tr):
+        X = torch.from_numpy(X_tr[T_tr.squeeze()==treatment_const,:]).float().to(self.training_params['device'])
+        Y = torch.from_numpy(Y_tr[T_tr.squeeze()==treatment_const]).float().to(self.training_params['device'])
+        return X,Y
+
+    def compute_expectation(self,y_te,t_te,x_te):
+        x_0_te,y_0_te = self.filter_out_treatments(0,x_te,t_te,y_te)
+        x_1_te,y_1_te = self.filter_out_treatments(1,x_te,t_te,y_te)
+        e_0 = self.e_train[self.tr_T==0]
+        e_1 = self.e_train[self.tr_T==1]
+        embedding_0=self.L_ker(y_0_te,self.tr_Y[self.tr_T==0]) * (1./e_0).unsqueeze(0)
+        mu_0 = embedding_0.sum(1)
+        embedding_1=self.L_ker(y_1_te,self.tr_Y[self.tr_T==1]) * (1./e_1).unsqueeze(0)
+        mu_1 = embedding_1.sum(1)
+        return mu_0,mu_1
+
+class baseline_test_class_correct(baseline_test_class):
+    def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]):
+        super(baseline_test_class_correct, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols=cat_cols)
+
+    def run_test(self,seed):
+        #train classifier
+
+        if self.training_params['oracle_weights']:
+            self.e = torch.from_numpy(self.tst_W)
+        else:
+            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                                   self.val_T, nn_params=self.nn_params,
+                                                   bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                   X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+            self.classifier.fit(self.training_params['patience'])
+            print('classifier val auc: ', self.classifier.best)
+            self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+            self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
+
+        self.test=baseline_test_gpu_correct(self.tst_Y,e=self.e,T=self.tst_T,permutations=self.training_params['permutations'])
+        perm_stats,self.tst_stat = self.test.permutation_test()
+        self.perm_stats = perm_stats
+        self.pval = self.calculate_pval_symmetric(self.perm_stats,self.tst_stat )
+        output = [seed,self.pval,self.tst_stat]
+        return output+perm_stats.tolist()
+
+
 class baseline_double_ml(testing_class):
     def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
         super(baseline_double_ml, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
@@ -187,8 +341,6 @@ class baseline_double_ml(testing_class):
         print('pval: ',self.pval,)
         output = [seed, self.pval, self.tst_stat]
         return output + [self.tst_stat]*self.training_params['permutations']
-
-
 
 class baseline_vanilla_dr(testing_class):
     def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
@@ -234,6 +386,20 @@ class baseline_tmle(testing_class):
         output = [seed, self.pval, self.tst_stat]
         return output + [self.tst_stat]*self.training_params['permutations']
 
+class baseline_WMMD(testing_class):
+    def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
+        super(baseline_WMMD, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
+        self.X, self.T, self.Y=X,T,Y
+    def run_test(self, seed):
+        # train classifier
+        # self.test = tmle_baseline_test(X=self.X,Y=self.Y,T=self.T,n_bootstraps=self.training_params['permutations'])
+        self.test = WMMDTest(X=self.X,Y=self.Y,T=self.T,n_bootstraps=self.training_params['permutations'])
+        self.pval, self.tst_stat = self.test.permutation_test()
+        # self.perm_stats = perm_stats
+        # self.pval = self.calculate_pval_symmetric(self.perm_stats, self.tst_stat)
+        print('pval: ',self.pval,)
+        output = [seed, self.pval, self.tst_stat]
+        return output + [self.tst_stat]*self.training_params['permutations']
 
 class baseline_ipw(testing_class):
     def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
@@ -326,8 +492,14 @@ class experiment_object:
             W=data_dict['W']
             if self.test_type=='doubly_robust':
                 tst = testing_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='doubly_robust_correct':
+                tst = testing_class_correct(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='baseline':
                 tst = baseline_test_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='baseline_correct':
+                tst = baseline_test_class_correct(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type=='wmmd':
+                tst = baseline_WMMD(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='doubleml':
                 tst =baseline_double_ml(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='vanilla_dr':

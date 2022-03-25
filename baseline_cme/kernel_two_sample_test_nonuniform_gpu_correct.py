@@ -2,7 +2,8 @@ from __future__ import division
 import numpy as np
 from sys import stdout
 from doubly_robust_method.kernels import *
-
+import copy
+from sklearn.preprocessing import KBinsDiscretizer
 
 def MMD2u(K, w, m, n):
     """The MMD^2_u unbiased statistic.
@@ -18,6 +19,14 @@ def MMD2u(K, w, m, n):
           2.0 / (m * n) * Kxy.sum()
     return tot.item()
 
+def permute(n_bins,og_indices,clusters):
+    permutation = copy.deepcopy(og_indices)
+    for i in range(n_bins):
+        mask = i==clusters
+        group = og_indices[mask]
+        permuted_group=np.random.permutation(group)
+        permutation[mask]=permuted_group
+    return permutation
 
 def compute_null_distribution(K, w, m, n, iterations=10000, verbose=False,
                               random_state=None, marker_interval=1000):
@@ -27,13 +36,18 @@ def compute_null_distribution(K, w, m, n, iterations=10000, verbose=False,
         rng = random_state
     else:
         rng = np.random.RandomState(random_state)
-
+    og_indices = np.arange(K.shape[0])
+    n_bins = K.shape[0] // 20
+    binner = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='uniform')
+    numpy_e = w.cpu().numpy().squeeze()[:, np.newaxis]
+    clusters = binner.fit_transform(numpy_e).squeeze()
     mmd2u_null = np.zeros(iterations)
     for i in range(iterations):
         if verbose and (i % marker_interval) == 0:
             print(i),
             stdout.flush()
-        idx = rng.permutation(m + n)
+        # idx = rng.permutation(m + n)
+        idx=permute(n_bins,og_indices,clusters)
         kernel_X = K[:, idx]
         kernel_X = kernel_X[idx, :]
         mmd2u_null[i] = MMD2u(kernel_X, w, m, n)
@@ -44,26 +58,8 @@ def compute_null_distribution(K, w, m, n, iterations=10000, verbose=False,
     return mmd2u_null
 
 
-def compute_null_distribution_given_permutations(K, w, m, n, permutation,
-                                                 iterations=None):
-    """Compute the bootstrap null-distribution of MMD2u given
-    predefined permutations.
-    Note:: verbosity is removed to improve speed.
-    """
-    if iterations is None:
-        iterations = len(permutation)
 
-    mmd2u_null = np.zeros(iterations)
-    for i in range(iterations):
-        idx = permutation[i]
-        K_i = K[idx, idx[:, None]]
-        w_i = w[idx]
-        mmd2u_null[i] = MMD2u(K_i, w_i, m, n)
-
-    return mmd2u_null
-
-
-def kernel_two_sample_test_nonuniform_gpu(X, Y, w, kernel_function='rbf', iterations=10000,
+def kernel_two_sample_test_nonuniform_gpu_correct(X, Y, w, kernel_function='rbf', iterations=10000,
                                           verbose=False, random_state=None, ls=1.0):
     """Compute MMD^2_u, its null distribution and the p-value of the
     kernel two-sample test.
@@ -77,7 +73,6 @@ def kernel_two_sample_test_nonuniform_gpu(X, Y, w, kernel_function='rbf', iterat
     n = len(Y)
     XY = torch.cat([X, Y], dim=0)
 
-    # K = pairwise_kernels(XY, metric=kernel_function, **kwargs)
 
     if kernel_function == 'rbf':
         kernel = RBFKernel(XY)
