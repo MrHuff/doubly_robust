@@ -89,10 +89,10 @@ if __name__ == '__main__':
                                                 alpha_vec=np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,
                                                 alpha_0=0.05, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b)
 
-    X_0 = X_test[T_test.squeeze()==0,:]
-    X_1 = X_test[T_test.squeeze()==1,:]
-    Y_1_true=generate_interventional_stuff_1(X=X_0,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1)
-    Y_0_true=generate_interventional_stuff_1(X=X_1,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=0)
+    # X_0 = X_test[T_test.squeeze()==0,:]
+    # X_1 = X_test[T_test.squeeze()==1,:]
+    Y_1_true=generate_interventional_stuff_1(X=X_test,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1)
+    # Y_0_true=generate_interventional_stuff_1(X=X_1,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=0)
 
     dr_c=testing_class(X=X,T=T,Y=Y,W=W,nn_params=nn_params,training_params=training_params)
     kme_0,kme_1=dr_c.fit_class_and_embedding()
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     c=baseline_test_class(X=X,T=T,Y=Y,W=W,nn_params=nn_params,training_params=training_params)
     c.fit_class_and_embedding()
     base_mu_0,base_mu_1=c.compute_expectation(t_te=T_test,y_te=Y_test,x_te=X_test)
-    print(base_mu_1)
+    # print(base_mu_1)
     print(mu_1)
     print(Y_1_true)
 
