@@ -84,8 +84,8 @@ class testing_class():
 
 
     def fit_class_and_embedding(self):
-        self.tr_Y = torch.from_numpy(self.tr_Y).to(self.training_params['device'])
-        ls_y = general_ker_obj.get_median_ls(self.tr_Y)
+        tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
+        ls_y = general_ker_obj.get_median_ls(tmp_Y)
         self.L_ker = RBFKernel().to(self.training_params['device'])
         self.L_ker._set_lengthscale(ls_y)
         if self.training_params['oracle_weights']:
@@ -103,7 +103,7 @@ class testing_class():
             self.e_train = torch.nan_to_num(self.e_train, nan=0.5, posinf=0.5)
 
         self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
-
+        return self.kme_0,self.kme_1
 
 
     def run_test(self,seed):
@@ -163,15 +163,16 @@ class testing_class():
         return X,Y
 
     def compute_expectation(self,kme_0,kme_1,y_te,t_te,x_te):
+        tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
         x_0_te,y_0_te = self.filter_out_treatments(0,x_te,t_te,y_te)
         x_1_te,y_1_te = self.filter_out_treatments(1,x_te,t_te,y_te)
         e_0 = self.e_train[self.tr_T==0]
         e_1 = self.e_train[self.tr_T==1]
-        embedding_0=self.L_ker(y_0_te,self.tr_Y[self.tr_T==0]) * (1./e_0).unsqueeze(0) - ((1-e_0)/e_0).unsqueeze(0)*kme_0.get_embedding(x_0_te,y_0_te)
-        mu_0 = embedding_0.sum(1)
-        embedding_1=self.L_ker(y_1_te,self.tr_Y[self.tr_T==1]) * (1./e_1).unsqueeze(0) - ((1-e_1)/e_0).unsqueeze(0)*kme_1.get_embedding(x_1_te,y_1_te)
-        mu_1 = embedding_1.sum(1)
-        return mu_0,mu_1
+        embedding_10=self.L_ker(y_1_te,tmp_Y[self.tr_T==0,:].unsqueeze(-1)) * (1./e_0).unsqueeze(0) - ((1-e_0)/e_0).unsqueeze(0)*kme_0.get_embedding(x_1_te,y_1_te)
+        mu_10 = embedding_10.mean(1)
+        embedding_01=self.L_ker(y_0_te,tmp_Y[self.tr_T==1,:].unsqueeze(-1)) * (1./e_1).unsqueeze(0) - ((1-e_1)/e_1).unsqueeze(0)*kme_1.get_embedding(x_0_te,y_0_te)
+        mu_01 = embedding_01.mean(1)
+        return mu_10,mu_01
 
     @staticmethod
     def calculate_pval_right_tail(bootstrapped_list, test_statistic):
@@ -192,6 +193,14 @@ class testing_class_correct(testing_class):
     def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]): #assuming data comes in as numpy
         super(testing_class_correct, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols)
 
+    def get_stuff_for_conditional_perm(self,X,e):
+        og_indices=np.arange(X.shape[0])
+        n_bins=X.shape[0]//20 if X.shape[0]//20>2 else 10
+        binner = KBinsDiscretizer(n_bins=n_bins, encode='ordinal', strategy='uniform')
+        numpy_e=e.cpu().numpy().squeeze()[:,np.newaxis]
+        clusters = binner.fit_transform(numpy_e).squeeze()
+        return og_indices,binner,clusters,n_bins
+
     def run_test(self,seed):
         #train classifier
 
@@ -204,17 +213,13 @@ class testing_class_correct(testing_class):
                                                    self.val_T, nn_params=self.nn_params,
                                                    bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
                                                    X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
-
-            # self.classifier_perm = propensity_estimator(self.tr_X_cont[perm_tr], self.tr_T, self.val_X_cont[perm_val],
-            #                                             self.val_T, nn_params=self.nn_params,
-            #                                             bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
-            #                                             X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
-
             self.classifier.fit(self.training_params['patience'])
             # self.classifier_perm.fit(self.training_params['patience'])
             print('classifier val auc: ', self.classifier.best)
             # print('classifier perm val auc: ', self.classifier_perm.best)
             self.e = self.classifier.predict(self.tst_X_cont,self.tst_T,self.tst_X_cat)
+            self.train_e = self.classifier.predict(self.tr_X_cont,self.tr_T,self.tr_X_cat)
+            self.val_e = self.classifier.predict(self.val_X_cont,self.val_T,self.val_X_cat)
             self.perm_e = self.e# self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
 
             self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
@@ -223,9 +228,11 @@ class testing_class_correct(testing_class):
         self.kme_0,self.kme_1 = self.fit_y_cond_x(self.tr_X,self.tr_Y,self.tr_T,self.val_X,self.val_Y,self.val_T,False)
 
         if self.training_params['double_estimate_kme']:
-            perm_tr = torch.randperm(self.tr_X.shape[0])
-            perm_val = torch.randperm(self.val_X.shape[0])
-            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T,True)
+            tr_og_indices,tr_binner,tr_clusters,tr_bins=self.get_stuff_for_conditional_perm(self.tr_X,self.train_e)
+            val_og_indices,val_binner,val_clusters,val_bins=self.get_stuff_for_conditional_perm(self.val_X,self.val_e)
+            perm_tr  = permute(n_bins=tr_bins,og_indices=tr_og_indices,clusters=tr_clusters)
+            perm_val  = permute(n_bins=val_bins,og_indices=val_og_indices,clusters=val_clusters)
+            self.kme_0_indep,self.kme_1_indep = self.fit_y_cond_x(self.tr_X[perm_tr],self.tr_Y[perm_tr],self.tr_T,self.val_X[perm_val],self.val_Y[perm_val],self.val_T,False)
         else:
             self.kme_0_indep, self.kme_1_indep=self.kme_0,self.kme_1
 
@@ -248,7 +255,8 @@ class baseline_test_class(testing_class):
         super(baseline_test_class, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols=cat_cols)
 
     def fit_class_and_embedding(self):
-        ls_y = general_ker_obj.get_median_ls(self.tr_Y)
+        tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
+        ls_y = general_ker_obj.get_median_ls(tmp_Y)
         self.L_ker = RBFKernel().to(self.training_params['device'])
         self.L_ker._set_lengthscale(ls_y)
         self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
@@ -290,14 +298,17 @@ class baseline_test_class(testing_class):
         return X,Y
 
     def compute_expectation(self,y_te,t_te,x_te):
+
+        tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
+
         x_0_te,y_0_te = self.filter_out_treatments(0,x_te,t_te,y_te)
         x_1_te,y_1_te = self.filter_out_treatments(1,x_te,t_te,y_te)
         e_0 = self.e_train[self.tr_T==0]
         e_1 = self.e_train[self.tr_T==1]
-        embedding_0=self.L_ker(y_0_te,self.tr_Y[self.tr_T==0]) * (1./e_0).unsqueeze(0)
-        mu_0 = embedding_0.sum(1)
-        embedding_1=self.L_ker(y_1_te,self.tr_Y[self.tr_T==1]) * (1./e_1).unsqueeze(0)
-        mu_1 = embedding_1.sum(1)
+        embedding_10=self.L_ker(y_1_te,tmp_Y[self.tr_T==0,:].unsqueeze(-1)) * (1./e_0).unsqueeze(0)
+        mu_0 = embedding_10.mean(1)
+        embedding_01=self.L_ker(y_0_te,tmp_Y[self.tr_T==1,:].unsqueeze(-1)) * (1./e_1).unsqueeze(0)
+        mu_1 = embedding_01.mean(1)
         return mu_0,mu_1
 
 class baseline_test_class_correct(baseline_test_class):

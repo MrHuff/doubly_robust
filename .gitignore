@@ -2,6 +2,7 @@
 *.log
 notes/gformulakerneltest.pdf
 *.png
+*.dta
 *.npy
 *.pickle
 *.pkl

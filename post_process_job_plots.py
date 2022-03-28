@@ -53,20 +53,20 @@ def get_job_df(job_path):
     data = []
     columns = ['dataset','tp','neural_cme','double_estimate_kme','oracle_weights','method','b','D','n','pval_001','pval_005','pval_01','KS_pval','KS_stat']
     for j in jobs:
-        # try:
-        experiment_params = load_obj(j, folder=f'{job_path}/')
-        method=experiment_params['test_type']
-        ow=experiment_params['training_params']['oracle_weights']
-        dek=experiment_params['training_params']['double_estimate_kme']
-        tp=experiment_params['training_params']['epochs']==100
-        ncme=experiment_params['training_params']['neural_cme']
-        b,d,n=extract_bdn(j)
-        ds = j.split(method)[0][0:-1]
-        df= pd.read_csv(experiment_params['experiment_save_path']+f'/final_res.csv',index_col=0).values.tolist()[0]
-        row = [ds,tp,ncme,dek,ow,method,b,d,n]+df
-        data.append(row)
-        # except Exception as e:
-        #     print(e)
+        try:
+            experiment_params = load_obj(j, folder=f'{job_path}/')
+            method=experiment_params['test_type']
+            ow=experiment_params['training_params']['oracle_weights']
+            dek=experiment_params['training_params']['double_estimate_kme']
+            tp=experiment_params['training_params']['epochs']==100
+            ncme=experiment_params['training_params']['neural_cme']
+            b,d,n=extract_bdn(j)
+            ds = j.split(method)[0][0:-1]
+            df= pd.read_csv(experiment_params['experiment_save_path']+f'/final_res.csv',index_col=0).values.tolist()[0]
+            row = [ds,tp,ncme,dek,ow,method,b,d,n]+df
+            data.append(row)
+        except Exception as e:
+            print(e)
     job_df = pd.DataFrame(data,columns=columns)
     full_method = []
     for i,r in job_df.iterrows():
@@ -176,7 +176,7 @@ def gpu_post_process(fold_name,df):
                        data_list=df_not_ow['dataset'].unique().tolist()
                        )
 def plot_1(df):
-    list_of_stuff=['ep-doublyrobust','ep-baseline']
+    list_of_stuff=['ep-baseline','ep-doublyrobust-dcme']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_1',big_df=subset_df,
@@ -186,7 +186,7 @@ def plot_1(df):
                        data_list=subset_df['dataset'].unique().tolist()
                        )
 def plot_1a(df):
-    list_of_stuff=['ow-doublyrobust','ow-baseline','doublyrobust','baseline']
+    list_of_stuff=['ep-doublyrobustcorrect-dcme','ep-doublyrobust-dcme']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_1a',big_df=subset_df,
@@ -195,8 +195,18 @@ def plot_1a(df):
                        nlist=subset_df['n'].unique().tolist(),
                        data_list=subset_df['dataset'].unique().tolist()
                        )
+def plot_1b(df):
+    list_of_stuff=['baseline','doublyrobust-dcme']
+    mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
+    subset_df=df[mask]
+    plot_2_est_weights(dir=f'plot_1b',big_df=subset_df,
+                       d_list=subset_df['D'].unique().tolist(),
+                       methods=subset_df['mname'].unique().tolist(),
+                       nlist=subset_df['n'].unique().tolist(),
+                       data_list=subset_df['dataset'].unique().tolist()
+                       )
 def plot_2(df):
-    list_of_stuff=['ep-doublyrobust']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
+    list_of_stuff=['ep-doublyrobust-dcme','ep-doublyrobustcorrect-dcme']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_2',big_df=subset_df,
@@ -206,7 +216,7 @@ def plot_2(df):
                        data_list=subset_df['dataset'].unique().tolist()
                        )
 def plot_2a(df):
-    list_of_stuff=['ep-doublyrobust','ep-doublyrobust-nncme-dcme','ep-doublyrobust-dcme','ep-doublyrobust-nncme']
+    list_of_stuff=['ep-doublyrobust-nncme-dcme','ep-doublyrobust-dcme','ep-doublyrobustcorrect-dcme','ep-doublyrobustcorrect-nncme-dcme']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_2a',big_df=subset_df,
@@ -242,6 +252,10 @@ def plot_3(df):
                 print(e)
 def plot_4(df): #Lalonde
     pass
+
+def plot_5(df): #Inspire
+    pass
+
 
 def generate_latex(dir,filename_func,n_list=[500,5000],ds_names=[
          'unit_test',
@@ -289,11 +303,13 @@ if __name__ == '__main__':
     """
     job_path='all_gpu_baselines_2'
     df_gpu = get_job_df(job_path)
+    job_path='all_gpu_baselines_3'
+    df_gpu_2 = get_job_df(job_path)
     job_path = 'all_cpu_baselines'
     df_cpu = get_job_df(job_path)
-    df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
+    df = pd.concat([df_gpu,df_gpu_2,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
     df['b']=df['b'].apply(lambda x: float(x))
-    new_df = df[df['n'].isin(['500','5000'])].reset_index()
+    new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
     plot_1(new_df)
     plot_1a(new_df)
     plot_2(new_df)

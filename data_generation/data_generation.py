@@ -55,6 +55,8 @@ def case_0(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pap
 
 
 
+#Remove T dependency for expetation calculation
+
 def case_1(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
     np.random.seed(seed)
     X = np.random.randn(ns, d)
@@ -64,7 +66,6 @@ def case_1(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik pap
     Y = np.dot(beta_vec, X.T) + noise_var * np.random.randn(ns) + b * T
     YY = Y[:, np.newaxis]
     return T[:, np.newaxis], YY, X, Prob_vec.squeeze()[:, np.newaxis]
-
 
 def case_1_robin(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
     np.random.seed(seed)

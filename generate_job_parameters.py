@@ -12,6 +12,14 @@ nn_params = {
     'dropout': 0.0,
     'transformation': linear
 }
+nn_params_class = {
+    'layers_x': [16, 8],
+    'cat_size_list': [],
+    'dropout': 0.1,
+    'transformation': torch.tanh,
+    'output_dim': 1,
+}
+
 nn_parms_2 = {
     'layers_x': [16, 8],
     'cat_size_list': [],
@@ -29,7 +37,7 @@ def get_dir_name(dir_name,b,D,N):
     job_name = 'datasets/' + f'{dir_name}/' + post_fix
     return job_name,post_fix
 
-def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods):
+def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
     oracle_weights =[True,False]
     double_estimate_kme=[False,True]
@@ -89,7 +97,7 @@ def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods):
                 with open(f'{job_dir}/{dir_name}_{method}_{data_indexing_string}_{job_name}.pickle', 'wb') as handle:
                     pickle.dump(experiment_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def generate_parameters_real_datasets(job_dir,dir_names,methods):
+def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params):
     # methods=['doubly_robust','baseline']
     # methods=['doubly_robust','doubleml']
     # methods=['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
@@ -132,7 +140,7 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods):
                                }
             experiment_params = {
                 'experiment_save_path': f'{job_dir}_results/{method}/{dir_name}/{job_name}_results', 'data_dir_load': f'datasets/{dir_name}',
-                'num_exp': 100, 'nn_params': nn_params, 'training_params': training_params, 'cat_cols': [],
+                'num_exp': 100, 'nn_params': nn_params_class, 'training_params': training_params, 'cat_cols': [],
                 'test_type': f'{method}', 'debug_mode': False
             }
             # print(experiment_params)
@@ -168,8 +176,8 @@ def generate_all_cpu_baselines():
 
     ]
     methods = ['doubleml', 'vanilla_dr', 'gformula', 'tmle', 'ipw', 'cf', 'bart']
-    generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec,methods=methods)
-    generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods)
+    generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec,methods=methods,nn_params=nn_params)
+    generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods,nn_params=nn_params)
 
 def generate_all_gpu_baselines():
     if not os.path.exists('all_gpu_baselines_2'):
@@ -200,9 +208,10 @@ def generate_all_gpu_baselines():
         'lalonde_100_null',
 
     ]
-    methods = ['doubly_robust','wmmd','baseline','doubly_robust_correct','baseline_correct']
-    generate_parameters(f'all_gpu_baselines_2',ds,bvec,Dvec,Nvec,methods)
-    generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods)
+    # methods = ['doubly_robust','wmmd','baseline','baseline_correct']
+    methods=['doubly_robust_correct']
+    generate_parameters(f'all_gpu_baselines_3',ds,bvec,Dvec,Nvec,methods,nn_params)
+    generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
 if __name__ == '__main__':
     generate_all_cpu_baselines()
     generate_all_gpu_baselines()
