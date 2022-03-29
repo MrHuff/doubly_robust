@@ -65,7 +65,6 @@ class baseline_test_gpu_correct():
         self.e_input = torch.cat([e_0,e_1],dim=0)
         self.perms = permutations
 
-
     def permutation_test(self):
         mmd2u_rbf, mmd2u_null_rbf, p_value_rbf = kernel_two_sample_test_nonuniform_gpu_correct(X=self.YY0, Y=self.YY1,w= self.e_input,
                                                                                    kernel_function='rbf',

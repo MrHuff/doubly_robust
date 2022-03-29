@@ -69,7 +69,7 @@ ref_dict={'seed': 0,
 if __name__ == '__main__':
     seed=1
     b=0.1
-    ns=1000
+    ns=2000
     neural_cme =False
     training_params = {'bs': 100,
                        'patience': 10,
@@ -94,7 +94,9 @@ if __name__ == '__main__':
     X_0 = X_test[T_test.squeeze()==0,:]
     X_1 = X_test[T_test.squeeze()==1,:]
     Y_1_true=generate_interventional_stuff_1(X=X_0,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1)
+    Y_0_true=generate_interventional_stuff_1(X=X_1,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1)
     Y_CF_train_True_1=generate_interventional_stuff_1(X=X,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1)
+    Y_CF_train_True_0=generate_interventional_stuff_1(X=X,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1)
     # Y_0_true=generate_interventional_stuff_1(X=X_1,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=0)
 
     dr_c=testing_class(X=X,T=T,Y=Y,W=W,nn_params=nn_params,training_params=training_params)
@@ -102,9 +104,12 @@ if __name__ == '__main__':
     mu_0,mu_1=dr_c.compute_expectation(kme_0,kme_1,t_te=T_test,y_te=Y_test,x_te=X_test) # #\mu_Y_{1}^DR(Y_test)
     L  = dr_c.L_ker
     Y_1_true, Y_CF_train_True_1=torch.from_numpy(Y_1_true).float().cuda(),torch.from_numpy(Y_CF_train_True_1).float().cuda()
+    Y_0_true, Y_CF_train_True_0=torch.from_numpy(Y_0_true).float().cuda(),torch.from_numpy(Y_CF_train_True_0).float().cuda()
     marginal_CFME_1 = L(Y_1_true,Y_CF_train_True_1).mean(1)  #\mu_Y_{1}(Y_test)
+    marginal_CFME_0 = L(Y_0_true,Y_CF_train_True_0).mean(1)  #\mu_Y_{1}(Y_test)
 
     print(((mu_1-marginal_CFME_1)**2).mean())
+    print(((mu_0-marginal_CFME_0)**2).mean())
 
     # (marginal_CFME_1-mu_1)
 
@@ -113,6 +118,7 @@ if __name__ == '__main__':
     base_mu_0,base_mu_1=c.compute_expectation(t_te=T_test,y_te=Y_test,x_te=X_test)
 
     print(((base_mu_1-marginal_CFME_1)**2).mean())
+    print(((base_mu_0-marginal_CFME_0)**2).mean())
 
     # print(base_mu_1)
     # print(base_mu_0)
