@@ -20,8 +20,17 @@ class learnable_kernel(torch.nn.Module):
 
     def inverse(self):
         middle_ker = self.evaluate()
+        n = middle_ker.shape[0]
+        reg_middle_ker = middle_ker+self.eye * self.lamb
+        rank = torch.linalg.matrix_rank(reg_middle_ker)
+        if rank == n:
+            inv = torch.inverse(reg_middle_ker)
+        else:
+            inv = torch.linalg.pinv(reg_middle_ker, hermitian=True)
+        # print(n)
+        # print()
         # L =torch.linalg.cholesky(middle_ker+self.eye * self.lamb)
-        return torch.inverse(middle_ker+middle_ker+self.eye * self.lamb),middle_ker
+        return inv,middle_ker
 
 class kme_model():
     def __init__(self,X_tr,Y_tr,T_tr,X_val,Y_val,T_val,treatment_const,device='cuda:0'):

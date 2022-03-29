@@ -3,6 +3,9 @@ import os
 import numpy as np
 import pandas as pd
 import pickle
+
+from sklearn.preprocessing import StandardScaler
+
 types = {'adequacy': 'cat',
  'alcohol': 'bin',
  'anemia': 'bin',
@@ -59,7 +62,7 @@ X = pd.read_csv("TWINS/twin_pairs_T_3years_samesex.csv",index_col=[0])
 Y = pd.read_csv("TWINS/twin_pairs_Y_3years_samesex.csv",index_col=[0])
 Z = pd.read_csv("TWINS/twin_pairs_X_3years_samesex.csv",index_col=[0])
 
-Z = Z.drop(['infant_id_1','Unnamed: 0.1','infant_id_0'],axis=1)
+Z = Z.drop(['infant_id_1','Unnamed: 0','infant_id_0'],axis=1)
 Z = Z.dropna()
 rows_to_keep = Z.index.tolist()
 
@@ -76,7 +79,7 @@ def get_perm(s,n,m,X_in,Y_in,Z):
     np.random.seed(s)
     perm_vec = np.random.permutation(n)[:m]
     T= X_in[perm_vec][:,np.newaxis]
-    Y=Y_in[perm_vec][:,np.newaxis]
+    Y=Y_in[perm_vec]
     X=Z[perm_vec,:]
     with open(f'datasets/twins_{m}/job_{s}.pickle', 'wb') as handle:
         pickle.dump({'seed': s, 'T': T, 'Y': Y, 'X': X, 'W': T}, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -85,14 +88,14 @@ def get_perm(s,n,m,X_in,Y_in,Z):
         pickle.dump({'seed': s, 'T': T, 'Y': np.random.randn(*Y.shape), 'X': X, 'W': T}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 if __name__ == '__main__':
-    cat_cols = []
+    cat_cols_names = []
     for i,j in types.items():
         if j =='cat':
-            cat_cols.append(i)
+            cat_cols_names.append(i)
     col_counts = []
     col_stats_list = []
     col_index_list = [False]*Z.shape[1]
-    for cat_col in cat_cols:
+    for cat_col in cat_cols_names:
         col_index_list[Z.columns.get_loc(cat_col)]=True
     cat_cols = Z.iloc[:,col_index_list]
 
@@ -100,7 +103,12 @@ if __name__ == '__main__':
         col_stats = cat_cols.iloc[:,i].unique().tolist()
         col_stats_list.append(col_stats)
         col_counts.append(len(col_stats))
+    Z = pd.get_dummies(Z,columns=cat_cols_names)
+    scaler_1 = StandardScaler()
     Z = Z.values
+    Z = scaler_1.fit_transform(Z)
+    scaler_2 = StandardScaler()
+    Y = scaler_2.fit_transform(Y[:,np.newaxis])
     other_data = {'indicator': col_index_list, 'index_lists': col_stats_list}
     for m in [2500,5000]:
         for s in range(100):

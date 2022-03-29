@@ -39,10 +39,10 @@ def get_dir_name(dir_name,b,D,N):
 
 def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
-    oracle_weights =[True,False]
+    oracle_weights =[False]
     double_estimate_kme=[False,True]
-    neural_cmes=[False,True]
-    train_prop=[False,True]
+    neural_cmes=[False]
+    train_prop=[True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
 
     if not os.path.exists(f'{job_dir}'):
@@ -103,8 +103,8 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params):
     # methods=['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
     oracle_weights =[False]
     double_estimate_kme=[False,True]
-    neural_cmes=[False,True]
-    train_prop=[True,False]
+    neural_cmes=[False]
+    train_prop=[True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
 
     if not os.path.exists(f'{job_dir}'):
@@ -140,7 +140,7 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params):
                                }
             experiment_params = {
                 'experiment_save_path': f'{job_dir}_results/{method}/{dir_name}/{job_name}_results', 'data_dir_load': f'datasets/{dir_name}',
-                'num_exp': 100, 'nn_params': nn_params_class, 'training_params': training_params, 'cat_cols': [],
+                'num_exp': 100, 'nn_params': nn_params, 'training_params': training_params, 'cat_cols': [],
                 'test_type': f'{method}', 'debug_mode': False
             }
             # print(experiment_params)
@@ -173,7 +173,8 @@ def generate_all_cpu_baselines():
         'twins_5000_null',
         'lalonde_100',
         'lalonde_100_null',
-
+        'inspire_1000',
+        'inspire_1000_null',
     ]
     methods = ['doubleml', 'vanilla_dr', 'gformula', 'tmle', 'ipw', 'cf', 'bart']
     generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec,methods=methods,nn_params=nn_params)
@@ -206,11 +207,15 @@ def generate_all_gpu_baselines():
         'twins_5000_null',
         'lalonde_100',
         'lalonde_100_null',
-
+        'inspire_1000',
+        'inspire_1000_null',
     ]
     # methods = ['doubly_robust','wmmd','baseline','baseline_correct']
     methods=['doubly_robust_correct']
     generate_parameters(f'all_gpu_baselines_3',ds,bvec,Dvec,Nvec,methods,nn_params)
+    methods=['doubly_robust_correct_sampling']
+    generate_parameters(f'all_gpu_baselines_4',ds,bvec,Dvec,Nvec,methods,nn_params)
+    methods=['doubly_robust_correct','baseline','doubly_robust','doubly_robust_correct_sampling']
     generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
 if __name__ == '__main__':
     generate_all_cpu_baselines()

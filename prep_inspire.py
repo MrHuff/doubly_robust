@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import numpy as np
 import pickle
+from sklearn.preprocessing import StandardScaler
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
@@ -14,8 +15,10 @@ def get_perm(s,n,m,X_in,Y_in,Z):
     np.random.seed(s)
     perm_vec = np.random.permutation(n)[:m]
     T= X_in[perm_vec][:,np.newaxis]
-    Y=Y_in[perm_vec][:,np.newaxis]
+    Y=Y_in[perm_vec]
     X=Z[perm_vec,:]
+
+
     with open(f'datasets/inspire_{m}/job_{s}.pickle', 'wb') as handle:
         pickle.dump({'seed': s, 'T': T, 'Y': Y, 'X': X, 'W': T}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -39,7 +42,15 @@ if __name__ == '__main__':
     Y = df[outcomes]
     Y=pd.get_dummies(Y)
     Y=Y.drop(['AbPhy_i2_0. No','AbEmo_i2_0. No','AbSx_i2_0. No','ViPerp_i2_0. No'],axis=1).values
-    n=Y.shape[0]
+    scaler_1 = StandardScaler()
+    scaler_2 = StandardScaler()
+    Y=scaler_1.fit_transform(Y)
+    X=scaler_2.fit_transform(X)
+    mask = ~np.isnan(X).any(axis=1)
+
+    T= T[mask]
+    Y=Y[mask]
+    X=X[mask]
     for s in range(100):
-        get_perm(s=s,n=n,m=1000,X_in=T,Y_in=Y,Z=X)
+        get_perm(s=s,n=Y.shape[0],m=1000,X_in=T,Y_in=Y,Z=X)
 

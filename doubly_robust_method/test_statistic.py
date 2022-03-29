@@ -3,7 +3,7 @@ import torch
 from doubly_robust_method.kernels import *
 from doubly_robust_method.kme import *
 from sklearn.preprocessing import KBinsDiscretizer
-
+from torch.distributions import Bernoulli
 general_ker_obj =Kernel()
 import random
 import copy
@@ -103,7 +103,6 @@ class counterfactual_me_test():
 
     def permutation_test(self):
         perm_stats=[]
-
         running_err_0 = 0.
         running_err_1 = 0.
 
@@ -188,6 +187,30 @@ class counterfactual_me_test_correct(counterfactual_me_test):
             print(running_err_0/self.permutations,running_err_1/self.permutations)
         return perm_stats,self.ref_stat.item()
 
+class counterfactual_me_test_correct_sample(counterfactual_me_test):
+    def __init__(self,
+                 X,Y,e,perm_e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e=False,permutations=250,device='cuda:0',debug_mode=False):
+        super(counterfactual_me_test_correct_sample, self).__init__(X,Y,e,perm_e,T,kme_1,kme_0,kme_1_indep,kme_0_indep,permute_e,permutations,device,debug_mode)
+        self.bernoulli_T = Bernoulli(probs=self.e)
+
+    def recreate_all_weights(self,e,new_T):
+        self.psi_0_weight=(e-new_T)/(1.-e)
+        self.psi_1_weight=(new_T-e)/(e)
+        self.T_1_weight=new_T/e
+        self.T_0_weight = (1-new_T)/(1.-e)
+
+    def sample_T(self):
+        return self.bernoulli_T.sample()
+
+    def permutation_test(self):
+        perm_stats=[]
+        for i in range(self.permutations):
+            new_T = self.sample_T()
+            self.recreate_all_weights(self.e,new_T)
+
+            tst = self.calculate_test_statistic(self.L)
+            perm_stats.append(tst.item())
+        return perm_stats,self.ref_stat.item()
 
 if __name__ == '__main__':
     pass
