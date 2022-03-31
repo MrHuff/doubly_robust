@@ -162,18 +162,21 @@ class testing_class():
         return X,Y
 
     def compute_expectation(self,kme_0,kme_1,y_te,t_te,x_te):
-        tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
-        x_0_te,y_0_te = self.filter_out_treatments(0,x_te,t_te,y_te)
-        x_1_te,y_1_te = self.filter_out_treatments(1,x_te,t_te,y_te)
-        e_0 = self.e_train[self.tr_T==0]
-        e_1 = self.e_train[self.tr_T==1]
+        # tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
+        Y_test = torch.from_numpy(y_te).float().to(self.training_params['device'])
+        T_test =  torch.from_numpy(self.tst_T).float().to(self.training_params['device'])
+        # e_0 = self.e_train[self.tr_T==0]
+        # e_1 = self.e_train[self.tr_T==1
+        e = self.classifier.predict(self.tst_X,self.tst_Y, [])
+        tst_X_cont =torch.from_numpy(self.tst_X_cont).float().to(self.training_params['device'])
+        tst_Y =torch.from_numpy(self.tst_Y).float().to(self.training_params['device'])
 
         #Fix the regression formula such that it takes to account the "wrong" treatment as well
-        embedding_10=self.L_ker(y_1_te,tmp_Y[self.tr_T==0,:].unsqueeze(-1)) * (1./e_0).unsqueeze(0) - ((1-e_0)/e_0).unsqueeze(0)*kme_0.get_embedding(x_1_te,y_1_te)
-        mu_10 = embedding_10.mean(1)
-        embedding_01=self.L_ker(y_0_te,tmp_Y[self.tr_T==1,:].unsqueeze(-1)) * (1./e_1).unsqueeze(0) - ((1-e_1)/e_1).unsqueeze(0)*kme_1.get_embedding(x_0_te,y_0_te)
-        mu_01 = embedding_01.mean(1)
-        return mu_10,mu_01
+        embedding_0=self.L_ker(Y_test,tst_Y) *  ((1-T_test).t() * (1./e).t()) - (( (1-T_test)-e)/e).t()*kme_0.get_embedding(Y_test,tst_X_cont)
+        mu_0 = embedding_0.mean(1)
+        embedding_1=self.L_ker(Y_test,tst_Y) *(T_test.t() *(1./e).t()) - ((T_test-e)/e).t()*kme_1.get_embedding(Y_test,tst_X_cont)
+        mu_1 = embedding_1.mean(1)
+        return mu_0,mu_1
 
     @staticmethod
     def calculate_pval_right_tail(bootstrapped_list, test_statistic):
@@ -361,17 +364,19 @@ class baseline_test_class(testing_class):
         return X,Y
 
     def compute_expectation(self,y_te,t_te,x_te):
+        Y_test = torch.from_numpy(y_te).float().to(self.training_params['device'])
+        T_test =  torch.from_numpy(self.tst_T).float().to(self.training_params['device'])
+        # e_0 = self.e_train[self.tr_T==0]
+        # e_1 = self.e_train[self.tr_T==1
+        e = self.classifier.predict(self.tst_X,self.tst_Y, [])
+        tst_X_cont =torch.from_numpy(self.tst_X_cont).float().to(self.training_params['device'])
+        tst_Y =torch.from_numpy(self.tst_Y).float().to(self.training_params['device'])
 
-        tmp_Y = torch.from_numpy(self.tr_Y).float().to(self.training_params['device'])
-
-        x_0_te,y_0_te = self.filter_out_treatments(0,x_te,t_te,y_te)
-        x_1_te,y_1_te = self.filter_out_treatments(1,x_te,t_te,y_te)
-        e_0 = self.e_train[self.tr_T==0]
-        e_1 = self.e_train[self.tr_T==1]
-        embedding_10=self.L_ker(y_1_te,tmp_Y[self.tr_T==0,:].unsqueeze(-1)) * (1./e_0).unsqueeze(0)
-        mu_0 = embedding_10.mean(1)
-        embedding_01=self.L_ker(y_0_te,tmp_Y[self.tr_T==1,:].unsqueeze(-1)) * (1./e_1).unsqueeze(0)
-        mu_1 = embedding_01.mean(1)
+        #Fix the regression formula such that it takes to account the "wrong" treatment as well
+        embedding_0 = self.L_ker(Y_test, tst_Y) * ((1 - T_test).t() * (1. / e).t())  #- (( (1-T_test)-e)/e).unsqueeze(0)*kme_0.get_embedding(tst_X_cont,Y_test)
+        mu_0 = embedding_0.mean(1)
+        embedding_1=self.L_ker(Y_test,tst_Y) *(T_test.t() *(1./e).t()) #- ((T_test-e)/e).unsqueeze(0)*kme_1.get_embedding(tst_X_cont,Y_test)
+        mu_1 = embedding_1.mean(1)
         return mu_0,mu_1
 
 class baseline_test_class_correct(baseline_test_class):

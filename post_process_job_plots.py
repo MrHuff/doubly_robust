@@ -305,9 +305,11 @@ if __name__ == '__main__':
     df_gpu = get_job_df(job_path)
     job_path='all_gpu_baselines_3'
     df_gpu_2 = get_job_df(job_path)
+    job_path='all_gpu_baselines_4'
+    df_gpu_3 = get_job_df(job_path)
     job_path = 'all_cpu_baselines'
     df_cpu = get_job_df(job_path)
-    df = pd.concat([df_gpu,df_gpu_2,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
+    df = pd.concat([df_gpu,df_gpu_2,df_gpu_3,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
     df['b']=df['b'].apply(lambda x: float(x))
     new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
     plot_1(new_df)

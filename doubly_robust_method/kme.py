@@ -104,12 +104,12 @@ class kme_model():
             #         return
         return
 
-    def get_embedding(self,X_te,Y_te):
-        k_x = self.kernel(X_te,self.X_tr)
-        L = self.l(Y_te,self.Y_tr)
-        w=k_x@self.inv #Should be some sort of inner product no?
-        return w*L
-
+    def get_embedding(self,realize_Y,ref_X_te):
+        k_x = self.kernel(ref_X_te,self.X_tr) #mxn
+        L = self.l(realize_Y,self.Y_tr) #j x n
+        w=k_x@self.inv #nxn #Should be some sort of inner product no? # mxn @ nxn = mxn
+         # m*n , jxn
+        return  L @ w.t()  #jxm
     def get_middle_ker(self,X):
         middle_ker = self.kernel(self.X_tr, X)
         return middle_ker

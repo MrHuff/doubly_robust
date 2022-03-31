@@ -55,7 +55,7 @@ if __name__ == '__main__':
     base_config = {'seed': 0,
          'ns': 5000,
          'd': 5,
-         'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 10,  # Treatment assignment
+         'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
          # the thing just blows up regardless of what you do?!
          # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
          'alpha_0': 0.05,  # 0.05,
