@@ -6,17 +6,34 @@ import itertools
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from post_process_job_plots import *
 sns.set()
-
+cp = sns.color_palette()
+print(cp)
 def debug_plot_weights(savedir,plt_name,T,w_true):
     df = pd.DataFrame(np.concatenate([T,w_true],axis=1),columns=['T','prob'])
-    sns.histplot(data=df,x='prob',hue='T',bins=50)
+    g=sns.histplot(data=df,x='prob',hue='T',bins=50)
+    L = plt.legend()
+    L.get_texts()
+    print(L)
+    plt.legend('', frameon=False)
+    # print(g)
+    # g._legend.remove()
+
     plt.savefig(f'{savedir}/{plt_name}_weights.png',bbox_inches = 'tight',
             pad_inches = 0.05)
     plt.clf()
 def debug_plot_treatments(savedir,plt_name,T,Y):
     df = pd.DataFrame(np.concatenate([T,Y],axis=1),columns=['T','Y'])
-    sns.histplot(data=df,x='Y',hue='T',bins=50)
+    g=sns.histplot(data=df,x='Y',hue='T',bins=50)
+    # print(g)
+    L = plt.legend()
+    L.get_texts()
+    print(L)
+    plt.legend('', frameon=False)
+    plt.legend('', frameon=False)
+    # g._legend.remove()
+
     plt.savefig(f'{savedir}/{plt_name}_y.png',bbox_inches = 'tight',
             pad_inches = 0.05)
     plt.clf()
@@ -81,7 +98,8 @@ base_list = [
                  'noise_var': 0.1,
                  'b': 0
                  }]
-name_list = ['unit_test',
+name_list = [
+            'unit_test',
              'distributions_middle_ground',
              'conditions_satisfied',
              'banana',
@@ -95,6 +113,7 @@ name_list = ['unit_test',
 if __name__ == '__main__':
     if not os.path.exists('data_plot_dir'):
         os.makedirs('data_plot_dir')
+
     for (generator_function, base_config, name) in zip(gen_list, base_list, name_list):
         for (b, D, N) in p_list:
             if name in ['distributions_middle_ground', 'distributions', 'distributions_uniform', 'distributions_gamma']:
@@ -115,8 +134,14 @@ if __name__ == '__main__':
                 config_list.append(cp)
             for el in config_list:
                 T, Y, X, w_true = generator_function(**el)
-
+            b = str(b).replace('.','')
             debug_plot_weights(savedir='data_plot_dir',plt_name=f'{name}_{b}',T=T,w_true=w_true)
             debug_plot_treatments(savedir='data_plot_dir',plt_name=f'{name}_{b}',T=T,Y=Y)
+
+
+
+
+
+
 
 

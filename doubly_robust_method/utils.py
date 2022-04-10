@@ -40,6 +40,8 @@ class testing_class():
         kw = ['tr','val','tst']
         indices = [tr_ind_2,val_ind,tst_ind]
         for w,idx in zip(kw,indices):
+            setattr(self,f'{w}_idx',idx)
+
             setattr(self,f'{w}_X',X[idx])
             setattr(self,f'{w}_Y',Y[idx])
             setattr(self,f'{w}_W',W[idx])

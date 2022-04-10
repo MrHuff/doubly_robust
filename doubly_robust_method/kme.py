@@ -52,7 +52,7 @@ class kme_model():
         self.k = RBFKernel(self.X_tr)
         self.l = RBFKernel(self.Y_tr)
         self.l._set_lengthscale(ls_Y.item())
-        self.kernel=learnable_kernel(self.k, ls_X.item(), 1e-2).to(device)
+        self.kernel=learnable_kernel(self.k, ls_X.item(), 1e-5).to(device)
         self.L_tr = self.l.evaluate()
         self.L_val = self.l(self.Y_val,self.Y_val)
         self.L_cross = self.l(self.Y_tr,self.Y_val)
@@ -84,7 +84,7 @@ class kme_model():
         self.kernel.ls.requires_grad=False
         self.kernel.lamb.requires_grad=False
         # self.opt= torch.optim.Adam(self.kernel.parameters(),lr=1e-2)
-        list_of_lamb = np.linspace(0,5,20).tolist()
+        list_of_lamb = np.linspace(0,1e-2,20).tolist()
         for lamb in list_of_lamb:
             self.kernel.lamb[0] = lamb
             # for i in range(its):

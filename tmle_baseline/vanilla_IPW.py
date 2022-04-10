@@ -5,7 +5,7 @@ import pandas as pd
 from zepid.causal.ipw import IPTW, IPMW
 # from zepid.causal.snm import GEstimationSNM
 # from zepid.causal.doublyrobust import AIPTW, TMLE
-
+from scipy.special import expit, logit
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import warnings
@@ -103,14 +103,20 @@ class IPTW_pval(IPTW):
 
 class iptw_baseline_test():
     def __init__(self,X,T,Y,n_bootstraps):
+        X=X[:, ~(X == X[0, :]).all(0)]
+        X = X[:,:25] #prevent numerical overflows
         self.n,self.d=X.shape
         columns=[f'x_{i}' for i in range(self.d)] + ['Y']+['D']
         self.cov_string =''
         for i in range(self.d):
             self.cov_string+=f' + x_{i}'
 
-
+        l = np.unique(Y)
+        # if len(l)<4:
+        #     Y = expit(Y)
         self.dfs = pd.DataFrame(np.concatenate([X,Y,T],axis=1),columns=columns)
+        self.dfs = self.dfs.loc[:, self.dfs.apply(pd.Series.nunique) != 1]
+
         self.n_bootstraps = n_bootstraps
 
         # iptw = IPTW(self.dfs, treatment='D')

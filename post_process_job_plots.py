@@ -19,7 +19,6 @@ def calc_error_bars(power_val,alpha,num_samples):
     z_vec = np.ones_like(power_val)*z*(power_val*(1-power_val)/num_samples)**0.5
     return up,down,z_vec
 
-
 def extract_bdn(str):
     el_list= re.findall(r"[-+]?(?:\d*\.\d+|\d+)",str)
     return el_list[0],el_list[1],el_list[2]
@@ -55,6 +54,7 @@ def get_job_df(job_path):
     for j in jobs:
         try:
             experiment_params = load_obj(j, folder=f'{job_path}/')
+            j = j.replace('type_1', 'type_one')
             method=experiment_params['test_type']
             ow=experiment_params['training_params']['oracle_weights']
             dek=experiment_params['training_params']['double_estimate_kme']
@@ -151,12 +151,46 @@ def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005
 
                 # plt.figure(figsize=(15,15))
                 plt.hlines(0.05, 0,subset_3['b'].max())
-                plt.legend(prop={'size': 10})
+                plt.legend('', frameon=False)
+                # plt.legend(prop={'size': 10})
                 plt.xlabel(r'$\beta_{TY}$')
                 plt.ylabel('Power')
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
                 plt.clf()
+
+def type_1_plot(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    for dataset in data_list:
+        df = big_df[big_df['dataset']==dataset]
+        for d in d_list:
+            subset = df[df['D']==d]
+            for n in nlist:
+                subset_2 = subset[subset['n'] == n]
+                for col_index,method in enumerate(methods):
+                    try:
+                        subset_3 = subset_2[subset_2['mname']==method].sort_values(['b'],ascending=True).reset_index()
+                        a,b,e = calc_error_bars(subset_3[tname],alpha=0.05,num_samples=100)
+                        plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
+                        # plt.plot('beta_xy','p_a=0.05',data=subset_3,linestyle='-',label=rf'{format_string}',c = col_dict[method])
+
+                        plt.fill_between(subset_3['b'], a, b, alpha=0.1)
+                    except Exception as e:
+                        print('whoopsie')
+                    # plt.fill_between(subset_3['beta_xy'], a, b, alpha=0.1,color=col_dict[method])
+
+                # plt.figure(figsize=(15,15))
+                plt.hlines(0.05, 0,subset_3['b'].max())
+                # plt.legend(prop={'size': 10})
+                plt.legend('', frameon=False)
+                plt.xlabel(r'$\beta_{XY}$')
+                plt.ylabel('Power')
+                plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
+            pad_inches = 0.05)
+                plt.clf()
+
+
 
 def gpu_post_process(fold_name,df):
     mask_ow = df['mname'].apply(lambda x: 'ow' in x).values
@@ -175,8 +209,13 @@ def gpu_post_process(fold_name,df):
                        nlist=df_not_ow['n'].unique().tolist(),
                        data_list=df_not_ow['dataset'].unique().tolist()
                        )
+
+#plot 0 - convergence rates of embeddings
+#plot 1 - type 1 error arguments
+#
+
 def plot_1(df):
-    list_of_stuff=['ep-baseline','ep-doublyrobust-dcme']
+    list_of_stuff=['ep-baselinecorrect','ep-doublyrobustcorrect-dcme']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_1',big_df=subset_df,
@@ -186,7 +225,7 @@ def plot_1(df):
                        data_list=subset_df['dataset'].unique().tolist()
                        )
 def plot_1a(df):
-    list_of_stuff=['ep-doublyrobustcorrect-dcme','ep-doublyrobust-dcme']
+    list_of_stuff=['ep-doublyrobustcorrect-dcme','ep-doublyrobustcorrect', 'ep-baseline','ep-baselinecorrect']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_1a',big_df=subset_df,
@@ -195,71 +234,57 @@ def plot_1a(df):
                        nlist=subset_df['n'].unique().tolist(),
                        data_list=subset_df['dataset'].unique().tolist()
                        )
-def plot_1b(df):
-    list_of_stuff=['baseline','doublyrobust-dcme']
-    mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
-    subset_df=df[mask]
-    plot_2_est_weights(dir=f'plot_1b',big_df=subset_df,
-                       d_list=subset_df['D'].unique().tolist(),
-                       methods=subset_df['mname'].unique().tolist(),
-                       nlist=subset_df['n'].unique().tolist(),
-                       data_list=subset_df['dataset'].unique().tolist()
-                       )
-def plot_2(df):
-    list_of_stuff=['ep-doublyrobust-dcme','ep-doublyrobustcorrect-dcme']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
-    mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
-    subset_df=df[mask]
-    plot_2_est_weights(dir=f'plot_2',big_df=subset_df,
-                       d_list=subset_df['D'].unique().tolist(),
-                       methods=subset_df['mname'].unique().tolist(),
-                       nlist=subset_df['n'].unique().tolist(),
-                       data_list=subset_df['dataset'].unique().tolist()
-                       )
-def plot_2a(df):
-    list_of_stuff=['ep-doublyrobust-nncme-dcme','ep-doublyrobust-dcme','ep-doublyrobustcorrect-dcme','ep-doublyrobustcorrect-nncme-dcme']
-    mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
-    subset_df=df[mask]
-    plot_2_est_weights(dir=f'plot_2a',big_df=subset_df,
-                       d_list=subset_df['D'].unique().tolist(),
-                       methods=subset_df['mname'].unique().tolist(),
-                       nlist=subset_df['n'].unique().tolist(),
-                       data_list=subset_df['dataset'].unique().tolist()
-                       )
 
-def plot_3(df):
 
-    if not os.path.exists('plot_3'):
-        os.makedirs('plot_3')
-    list_of_stuff =['ep-doublyrobust','ep-doublyrobust-nncme-dcme','ep-doublyrobust-dcme','ep-doublyrobust-nncme']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
+def plot_histograms(df,savedir,ds_list):
+    if not os.path.exists(savedir):
+        os.makedirs(savedir)
+    list_of_stuff =['ep-doublyrobustcorrect-dcme','ep-baselinecorrect']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
-    for ds in ['twins_2500','twins_2500_null']:
+    for ds in ds_list:
         for l in list_of_stuff:
             try:
                 row = subset_df[(subset_df['mname']==l) &(subset_df['dataset']==ds)]
-                ks_val=row['KS_pval'].tolist()[0]
-                power = row['pval_005'].tolist()[0]
+                ks_val=round(row['KS_pval'].tolist()[0],3)
+                power = round(row['pval_005'].tolist()[0],3)
 
                 big_df=pd.read_csv(row['final_res_path'].tolist()[0])
-                sns.histplot(big_df,x='pval')
+                sns.histplot(big_df,x='pval',bins=20)
                 if 'null' in ds:
-                    plt.suptitle(f'KS test p-val: {ks_val}')
+                    plt.suptitle(f'KS test p-val: {ks_val}, Size (level=0.05): {power}')
                 else:
                     plt.suptitle(f'Power (level=0.05): {power}')
-                plt.savefig(f'plot_3/{ds}_{l}.png',bbox_inches = 'tight')
+                plt.savefig(f'{savedir}/{ds}_{l}.png',bbox_inches = 'tight')
                 plt.clf()
             except Exception as e:
                 print(e)
+
+
+def plot_3(df): #Twins
+    plot_histograms(df,'plot_twins',['twins_2500','twins_2500_null'])
+
+
 def plot_4(df): #Lalonde
-    pass
+    plot_histograms(df,'plot_lalonde',['lalonde_100','lalonde_100_null'])
+
 
 def plot_5(df): #Inspire
-    pass
+    plot_histograms(df,'plot_inspire',['inspire_1000','inspire_1000_null'])
+
+
+def type_1_plot_maker(subset_df):
+    type_1_plot(dir=f'type_1_plot',big_df=subset_df,
+                       d_list=subset_df['D'].unique().tolist(),
+                       methods=subset_df['mname'].unique().tolist(),
+                       nlist=subset_df['n'].unique().tolist(),
+                       data_list=subset_df['dataset'].unique().tolist()
+                       )
+
 
 
 def generate_latex(dir,filename_func,n_list=[500,5000],ds_names=[
          'unit_test',
-          'distributions_middle_ground',
           'conditions_satisfied',
           'robin',
         'distributions',
@@ -301,56 +326,87 @@ if __name__ == '__main__':
     """
     GPU - postprocessing
     """
-    job_path='all_gpu_baselines_2'
-    df_gpu = get_job_df(job_path)
-    job_path='all_gpu_baselines_3'
-    df_gpu_2 = get_job_df(job_path)
-    job_path='all_gpu_baselines_4'
-    df_gpu_3 = get_job_df(job_path)
-    job_path = 'all_cpu_baselines'
-    df_cpu = get_job_df(job_path)
-    df = pd.concat([df_gpu,df_gpu_2,df_gpu_3,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
-    df['b']=df['b'].apply(lambda x: float(x))
-    new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
-    plot_1(new_df)
-    plot_1a(new_df)
-    plot_2(new_df)
-    plot_2a(new_df)
 
-    # job_path='all_gpu_real'
-    # df_gpu = get_job_df_real(job_path)
-    # job_path = 'all_cpu_real'
-    # df_cpu = get_job_df_real(job_path)
-    # df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
-    # plot_3(df)
-    generate_latex('plot_1',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
-    generate_latex('plot_1a',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
-    generate_latex('plot_2',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
-    generate_latex('plot_2a',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
-    list_of_stuff = ['ep-doublyrobust','ep-doublyrobust-nncme-dcme','ep-doublyrobust-dcme','ep-doublyrobust-nncme']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
-    generate_latex('plot_3',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
+
+    #datasets
+    # generate_latex('data_plot_dir_strong',lambda dir,i,j:f'{dir}/{j}_01_{i}.png',n_list=['weights','y'],ds_names=[
+    #     'conditions_satisfied',
+    #     'robin',
+    #     'distributions',
+    #     'distributions_uniform',
+    #     'distributions_gamma',
+    #     ])
+
+    #Expectations
+    # generate_latex('ex_exp', lambda dir, i, j: f'{dir}/fig_{i}_{j}.png', n_list=['False', 'True'],
+    #                ds_names=[
+    #                    'distributional_0',
+    #                    'mean_0',
+    #                ]
+    #                )
 
 
 
-
-
-
-    #
-    # job_path='all_cpu_baselines'
-    # df = get_job_df(job_path)
-    # df['b']=df['b'].apply(lambda x: float(x))
-    # plot_2_est_weights(dir=f'{job_path}_plots',big_df=df,
-    #                    d_list=df['D'].unique().tolist(),
-    #                    methods=df['mname'].unique().tolist(),
-    #                    nlist=df['n'].unique().tolist(),
-    #                    data_list=df['dataset'].unique().tolist()
-    #                    )
-
-    # """
-    # Plot 1
-    # """
+    # type_1_path ='type_1'
+    # type_1_df = get_job_df(type_1_path)
+    # type_1_plot_maker(type_1_df)
+    # #
+    # #
     # job_path='all_gpu_baselines_2'
-    # df = get_job_df(job_path)
+    # df_gpu = get_job_df(job_path)
+    # job_path='all_gpu_baselines_3'
+    # df_gpu_2 = get_job_df(job_path)
+    # # job_path='all_gpu_baselines_4'
+    # # df_gpu_3 = get_job_df(job_path)
+    # job_path = 'all_cpu_baselines'
+    # df_cpu = get_job_df(job_path)
+    # df = pd.concat([df_gpu,df_gpu_2,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
     # df['b']=df['b'].apply(lambda x: float(x))
+    # new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
+    # plot_1(new_df)
+    # plot_1a(new_df)
+    # plot_2(new_df)
+    # plot_2a(new_df)
+    #
+    job_path='all_gpu_real'
+    df_gpu = get_job_df_real(job_path)
+    job_path = 'all_cpu_real'
+    df_cpu = get_job_df_real(job_path)
+    df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
+    plot_3(df)
+    plot_4(df)
+    plot_5(df)
+    # generate_latex('type_1_plot',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png',ds_names=['conditions_satisfied_type_one','distributions_type_one'])
+
+
+    # generate_latex('plot_1',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png',ds_names=[
+    #     'conditions_satisfied',
+    #     'robin',
+    #     'distributions',
+    #     'distributions_uniform',
+    #     'distributions_gamma',
+    #     ])
+
+    # generate_latex('plot_1',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png',ds_names=[
+    #     'conditions_satisfied_strong',
+    #     'robin_strong',
+    #     'distributions_strong',
+    #     'distributions_uniform_strong',
+    #     'distributions_gamma_strong',
+    #     ])
+    # generate_latex('plot_2',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
+    # generate_latex('plot_2a',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
+    list_of_stuff = ['ep-doublyrobustcorrect-dcme']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
+    # generate_latex('plot_3',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
+    generate_latex('plot_lalonde',lambda dir,i,j:f'{dir}/{i}_{j}.png',['lalonde_100','lalonde_100_null'],list_of_stuff)
+    generate_latex('plot_twins',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
+    generate_latex('plot_inspire',lambda dir,i,j:f'{dir}/{j}_{i}.png',['ep-doublyrobustcorrect-dcme'],['inspire_1000','inspire_1000_null'])
+
+
+
+
+
+
+
 
 

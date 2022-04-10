@@ -1,4 +1,5 @@
 import itertools
+import os.path
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -13,6 +14,10 @@ from baseline_cme.utils import gauss_rbf
 from sklearn.metrics import pairwise_distances
 import seaborn as sns
 sns.set()
+from matplotlib import rc
+import tqdm
+rc("text", usetex=False)
+
 PI = np.pi
 
 def linear(x):
@@ -31,10 +36,13 @@ nn_parms_2 = {
     'output_dim': 25,
 }
 
-def generate_observational_stuff_1(seed, ns, d, alpha_vec, alpha_0, beta_vec, b,noise_var=0.5):
+def generate_observational_stuff_1(seed, ns, d, alpha_vec, alpha_0, beta_vec, b,noise_var=0.0,misspecified=False):
     np.random.seed(seed)
     X = np.random.randn(ns, d)
-    Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
+    if misspecified:
+        Prob_vec = expit(np.dot(alpha_vec, X.T)**2 + alpha_0)
+    else:
+        Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
     T = bernoulli.rvs(Prob_vec)
     noise= noise_var * np.random.randn(ns)
     Y = np.dot(beta_vec, X.T)  + b * T + noise
@@ -46,10 +54,13 @@ def generate_interventional_stuff_1( X, beta_vec, b,T,noise,Z=None):
     YY = Y[:, np.newaxis]
     return YY
 
-def generate_observational_stuff_2(seed, ns, d, alpha_vec, alpha_0, beta_vec, b,noise_var=0.5):  # krik paper case 3
+def generate_observational_stuff_2(seed, ns, d, alpha_vec, alpha_0, beta_vec, b,noise_var=0.0,misspecified=False):  # krik paper case 3
     np.random.seed(seed)
     X = np.random.randn(ns, d)
-    Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
+    if misspecified:
+        Prob_vec = expit(np.dot(alpha_vec, X.T)**2 + alpha_0)
+    else:
+        Prob_vec = expit(np.dot(alpha_vec, X.T) + alpha_0)
     noise= noise_var * np.random.randn(ns)
     T = bernoulli.rvs(Prob_vec)
     Z = bernoulli.rvs(0.5, size=len(T))
@@ -68,8 +79,7 @@ def calc_r2(y_pred,y_true):
     r2 = 1-pair.mean()/y_true.var()
     return r2.item(),pair.mean().item()
 
-def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,train_weights):
-    neural_cme =False
+def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,misspecified):
     training_params = {'bs': 100,
                        'patience': 10,
                        'device': 'cuda:0',
@@ -77,38 +87,45 @@ def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,train_weights):
                        'permutations': 250,
                        'oracle_weights': False,
                        'double_estimate_kme': False,
-                       'epochs': 100 if train_weights else 0,
+                       'epochs': 100,
                        'debug_mode': False,
                        'neural_net_parameters': nn_parms_2,
                        'approximate_inverse': False,
-                       'neural_cme': neural_cme
+                       'neural_cme': False
                        }
     T, Y, X, W, noise,Z = sim_func(seed=seed, ns=ns, d=5,
-                                                       alpha_vec=np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 30,
+                                                       alpha_vec=np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,
                                                        alpha_0=0.05,
-                                                       beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b)
+                                                       beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b,misspecified=misspecified)
     T_test, Y_test, X_test, W_test, noise_test,Z = sim_func(seed=seed, ns=ns, d=5,
                                                                                 alpha_vec=np.array(
                                                                                     [0.05, 0.04, 0.03, 0.02,
-                                                                                     0.01]) * 30,
+                                                                                     0.01]) * 20,
                                                                                 alpha_0=0.05, beta_vec=np.array(
-            [0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b)
+            [0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b,misspecified=misspecified)
 
     # X_0 = X_test[T_test.squeeze()==0,:]
     # X_1 = X_test[T_test.squeeze()==1,:]
-    Y_1_true = intervene_func(X=X_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b, T=1,
-                                               noise=noise_test,Z=Z)
-    Y_0_true = intervene_func(X=X_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b, T=0,
-                                               noise=noise_test,Z=Z)
+
 
     dr_c = testing_class(X=X, T=T, Y=Y, W=W, nn_params=nn_params, training_params=training_params)
     kme_0, kme_1 = dr_c.fit_class_and_embedding()
     mu_0, mu_1 = dr_c.compute_expectation(kme_0, kme_1, t_te=T_test, y_te=Y_test, x_te=X_test)  # #\mu_Y_{1}^DR(Y_test)
+
+    x_ref_test= dr_c.tst_X
+    tst_idx = dr_c.tst_idx
+
+    Y_1_true = intervene_func(X=x_ref_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b, T=1,
+                                               noise=noise_test[tst_idx],Z=Z[tst_idx] if Z is not None else Z)
+    Y_0_true = intervene_func(X=x_ref_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b, T=0,
+                                               noise=noise_test[tst_idx],Z=Z[tst_idx] if Z is not None else Z)
+
     L = dr_c.L_ker
     Y_1_true = torch.from_numpy(Y_1_true).float().cuda()
     Y_0_true = torch.from_numpy(Y_0_true).float().cuda()
-    marginal_CFME_1 = L(Y_1_true, Y_1_true).mean(1).squeeze()  # \mu_Y_{1}(Y_test)
-    marginal_CFME_0 = L(Y_0_true, Y_0_true).mean(1) .squeeze() # \mu_Y_{1}(Y_test)
+    cuda_Y_tst = torch.from_numpy(Y_test).float().cuda()
+    marginal_CFME_1 = L(cuda_Y_tst, Y_1_true).mean(1).squeeze()  # \mu_Y_{1}(Y_test)
+    marginal_CFME_0 = L(cuda_Y_tst, Y_0_true).mean(1).squeeze() # \mu_Y_{0}(Y_test)
     r_2_1,mse_1 = calc_r2(mu_1.squeeze(), marginal_CFME_1)
     r_2_0,mse_0 = calc_r2(mu_0.squeeze(), marginal_CFME_0)
 
@@ -119,110 +136,52 @@ def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,train_weights):
     r_2_base_1,mse_base_1=calc_r2(base_mu_1.squeeze(),marginal_CFME_1)
     return r_2_0,r_2_1,r_2_base_0,r_2_base_1,mse_0,mse_1,mse_base_0,mse_base_1
 
-ref_dict={'seed': 0,
-         'ns': 0,
-         'd': 0,
-         'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,  # Treatment assignment
-         # the thing just blows up regardless of what you do?!
-         # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
-         'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
-         'noise_var': 0.1,
-         'b': 0
-         }
-
 #Tweakable parameters: b,distributional dataset, 5 seeds,n, to prove a point do 4 plots...
 #x-axis = n
 # y-axis error comparison ,with weights, not weights
 # different plot for b= 0 non 0, distributional non-distributional
 seeds = [1,2,3,4,5]
 n_list = [100,250,500,1000,2000,5000]
-tw = [False,True]
-b_list = [0.0,1.0]
+ms = [False, True]
+b_list = [0.5]
 funcs = [['mean',generate_observational_stuff_1,generate_interventional_stuff_1],['distributional',generate_observational_stuff_2,generate_interventional_stuff_2]]
 
 if __name__ == '__main__':
-
-    if not os.path.exists('expectation_experiment.csv'):
-        params = list(itertools.product(seeds,n_list,tw,b_list,funcs))
+    fn_name='expectation_experiments_fixed_references'
+    if not os.path.exists(f'{fn_name}.csv'):
+        params = list(itertools.product(seeds, n_list, ms, b_list, funcs))
         raw_data = []
-        cols  = ['seed','n','estimate w','b','data type','DR 0 R^2','DR 1 R^2','mu 0 R^2','mu 1 R^2','DR 0 mse','DR 1 mse','mu 0 mse','mu 1 mse']
-        for p in params:
+        cols  = ['seed','n','mis','b','data type','DR 0 R^2','DR 1 R^2','mu 0 R^2','mu 1 R^2','DR 0 mse','DR 1 mse','mu 0 mse','mu 1 mse']
+        for i,p in enumerate(tqdm.tqdm(params)):
             s,n,t,b,f = p
             name,obs_func,int_func = f
-            r_2_0,r_2_1,r_2_base_0,r_2_base_1,mse_0,mse_1,mse_base_0,mse_base_1 = calculate_and_simulate(seed=s,ns=n,b=b,sim_func=obs_func,intervene_func=int_func,train_weights=t)
+            r_2_0,r_2_1,r_2_base_0,r_2_base_1,mse_0,mse_1,mse_base_0,mse_base_1 = calculate_and_simulate(seed=s,ns=n,b=b,sim_func=obs_func,intervene_func=int_func,misspecified=t)
             raw_data.append([s,n,t,b,name,r_2_0, r_2_1, r_2_base_0, r_2_base_1,mse_0,mse_1,mse_base_0,mse_base_1])
         csv = pd.DataFrame(raw_data,columns=cols)
-        csv.to_csv('expectation_experiment.csv')
+        csv.to_csv(f'{fn_name}.csv')
     else:
-        df = pd.read_csv('expectation_experiment.csv')
-        val_vars_list = [['mu 1 mse','DR 1 mse'],['mu 0 mse','DR 0 mse']]
+        if not os.path.exists(f'{fn_name}_plots'):
+            os.makedirs(f'{fn_name}_plots')
+        df = pd.read_csv(f'{fn_name}.csv')
+        df[r'$\hat{\mu}_{Y(1)}$'] = df['mu 1 mse']
+        df[r'$\hat{\mu}_{Y(0)}$'] = df['mu 0 mse']
+        df[r'$\hat{\mu}_{Y(1)}^{DR}$'] = df['DR 1 mse']
+        df[r'$\hat{\mu}_{Y(0)}^{DR}$'] = df['DR 0 mse']
+
+        val_vars_list = [[r'$\hat{\mu}_{Y(1)}$',r'$\hat{\mu}_{Y(1)}^{DR}$'],[r'$\hat{\mu}_{Y(0)}$',r'$\hat{\mu}_{Y(0)}^{DR}$']]
         for i,val_vars in enumerate(val_vars_list):
-            mean_mse = pd.melt(df, id_vars=['seed','n','estimate w','b','data type'], value_vars=val_vars)
-            for b in b_list:
+            mean_mse = pd.melt(df, id_vars=['seed','n','mis','b','data type'], value_vars=val_vars)
+            mean_mse['MSE'] = mean_mse['value']
+            for mis in ms:
                 for f in funcs:
                     f_s,_,_ =f
-                    mask = (mean_mse['b']==b) & (mean_mse['data type']==f_s)
+                    mask = (mean_mse["mis"] == mis) & (mean_mse['data type'] == f_s)
                     mask = mask.values
                     subset = mean_mse[mask]
-                    sns.relplot(x="n", y="value", hue="variable", style="estimate w", kind="line", data=subset)
-                    plt.savefig(f'fig_{f_s}_{b}_{i}.png')
+                    g=sns.relplot(x="n", y="MSE", hue="variable", style="b", kind="line", data=subset)
+                    g._legend.remove()
+                    plt.savefig(f'{fn_name}_plots/fig_{mis}_{f_s}_{i}.png', bbox_inches ='tight')
                     plt.clf()
 
-                # sns.relplot(x="timepoint", y="", kind="line", data=subset)
 
-    # seed=1
-    # b=0.5
-    # ns=5000
-    #
-    # T,Y,X,W,noise=generate_observational_stuff_1(seed=seed,ns=ns,d=5,alpha_vec= np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 30,
-    #                              alpha_0=0.05,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b)
-    # T_test, Y_test, X_test, W_test,noise_test = generate_observational_stuff_1(seed=seed, ns=ns, d=5,
-    #                                             alpha_vec=np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 30,
-    #                                             alpha_0=0.05, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b)
-    #
-    # # X_0 = X_test[T_test.squeeze()==0,:]
-    # # X_1 = X_test[T_test.squeeze()==1,:]
-    # Y_1_true=generate_interventional_stuff_1(X=X_test,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1,noise=noise_test)
-    # Y_0_true=generate_interventional_stuff_1(X=X_test,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=0,noise=noise_test)
-    # Y_CF_train_True_1=generate_interventional_stuff_1(X=X,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=1,noise=noise)
-    # Y_CF_train_True_0=generate_interventional_stuff_1(X=X,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=0,noise=noise)
-    # # Y_0_true=generate_interventional_stuff_1(X=X_1,beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,b=b,T=0)
-    #
-    # dr_c=testing_class(X=X,T=T,Y=Y,W=W,nn_params=nn_params,training_params=training_params)
-    # kme_0,kme_1=dr_c.fit_class_and_embedding()
-    # mu_0,mu_1=dr_c.compute_expectation(kme_0,kme_1,t_te=T_test,y_te=Y_test,x_te=X_test) # #\mu_Y_{1}^DR(Y_test)
-    # L  = dr_c.L_ker
-    # Y_1_true, Y_CF_train_True_1=torch.from_numpy(Y_1_true).float().cuda(),torch.from_numpy(Y_CF_train_True_1).float().cuda()
-    # Y_0_true, Y_CF_train_True_0=torch.from_numpy(Y_0_true).float().cuda(),torch.from_numpy(Y_CF_train_True_0).float().cuda()
-    # marginal_CFME_1 = L(Y_1_true,Y_1_true).mean(1)  #\mu_Y_{1}(Y_test)
-    # marginal_CFME_0 = L(Y_0_true,Y_0_true).mean(1)  #\mu_Y_{1}(Y_test)
-    # # marginal_CFME_0 = L(Y_0_true,Y_CF_train_True_0).mean(1)  #\mu_Y_{1}(Y_test)
-    # print(calc_r2(mu_1.squeeze(),marginal_CFME_1))
-    # print(calc_r2(mu_0.squeeze(),marginal_CFME_0))
-    # # print(mu_1)
-    # # print(marginal_CFME_1)
-    # # print(((mu_1.squeeze()-marginal_CFME_1)**2).mean())
-    # # print(((mu_0.squeeze()-marginal_CFME_0)**2).mean())
-    # # print(((mu_0-marginal_CFME_0)**2).mean())
-    # # (marginal_CFME_1-mu_1)
-    # c=baseline_test_class(X=X,T=T,Y=Y,W=W,nn_params=nn_params,training_params=training_params)
-    # c.fit_class_and_embedding()
-    # base_mu_0,base_mu_1=c.compute_expectation(t_te=T_test,y_te=Y_test,x_te=X_test)
-    # print(calc_r2(base_mu_1.squeeze(),marginal_CFME_1))
-    # print(calc_r2(base_mu_0.squeeze(),marginal_CFME_0))
-    # print(base_mu_1)
-    # print(((base_mu_1.squeeze()-marginal_CFME_1)**2).mean())
-    # print(((base_mu_0.squeeze()-marginal_CFME_0)**2).mean())
-    # print(((base_mu_0-marginal_CFME_0)**2).mean())
-
-    # print(base_mu_1)
-    # print(base_mu_0)
-    # print(mu_1)
-    # print(mu_0)
-    # print(Y_1_true)
-
-
-    # testing_class
-    # baseline_test_class
 

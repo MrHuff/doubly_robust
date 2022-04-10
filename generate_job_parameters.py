@@ -53,6 +53,7 @@ def generate_parameters_type_1(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_param
     if not os.path.exists(f'{job_dir}'):
         os.makedirs(f'{job_dir}')
     for dir_name in dir_names:
+
         for (method, oracle_weight, de_kme, neural_cme, tp) in p_list:
             for (b,D,N) in num_list:
                 if method in ['baseline', 'baseline_correct']:
@@ -154,7 +155,7 @@ def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
                 with open(f'{job_dir}/{dir_name}_{method}_{data_indexing_string}_{job_name}.pickle', 'wb') as handle:
                     pickle.dump(experiment_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params):
+def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params,ds_dir='datasets'):
     # methods=['doubly_robust','baseline']
     # methods=['doubly_robust','doubleml']
     # methods=['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
@@ -196,7 +197,7 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params):
                                'neural_cme': neural_cme
                                }
             experiment_params = {
-                'experiment_save_path': f'{job_dir}_results/{method}/{dir_name}/{job_name}_results', 'data_dir_load': f'datasets/{dir_name}',
+                'experiment_save_path': f'{job_dir}_results/{method}/{dir_name}/{job_name}_results', 'data_dir_load': f'{ds_dir}/{dir_name}',
                 'num_exp': 100, 'nn_params': nn_params, 'training_params': training_params, 'cat_cols': [],
                 'test_type': f'{method}', 'debug_mode': False
             }
@@ -226,16 +227,12 @@ def generate_all_cpu_baselines():
     ds_real = [
         'twins_2500',
         'twins_2500_null',
-        'twins_5000',
-        'twins_5000_null',
         'lalonde_100',
         'lalonde_100_null',
-        'inspire_1000',
-        'inspire_1000_null',
     ]
-    methods = ['doubleml', 'vanilla_dr', 'gformula', 'tmle', 'ipw', 'cf', 'bart']
+    methods = ['vanilla_dr', 'gformula', 'tmle', 'ipw', 'doubleml','cf','bart']
     generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec,methods=methods,nn_params=nn_params)
-    generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods,nn_params=nn_params)
+    generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods,nn_params=nn_params,ds_dir='real_cpu')
 
 def generate_all_gpu_baselines():
     if not os.path.exists('all_gpu_baselines_2'):

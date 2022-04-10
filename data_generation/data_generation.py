@@ -226,6 +226,6 @@ def case_distributional_3(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, 
     #     plt.savefig(new_dirname + '/y_marg.png')
     #     plt.clf()
     #
-    # w = torch.where(x_samples == 1, 1 / (2 * sig_z), 1 / (2 * sig_z_neg))
-    # w = w.prod(dim=1)
-    # return x_samples,y_samples,z_samples,w
+    # mis = torch.where(x_samples == 1, 1 / (2 * sig_z), 1 / (2 * sig_z_neg))
+    # mis = mis.prod(dim=1)
+    # return x_samples,y_samples,z_samples,mis
