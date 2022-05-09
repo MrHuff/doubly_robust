@@ -93,16 +93,17 @@ def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,misspecified):
                        'approximate_inverse': False,
                        'neural_cme': False
                        }
+    beta=1.0
     T, Y, X, W, noise,Z = sim_func(seed=seed, ns=ns, d=5,
                                                        alpha_vec=np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 20,
                                                        alpha_0=0.05,
-                                                       beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b,misspecified=misspecified)
+                                                       beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * beta, b=b,misspecified=misspecified)
     T_test, Y_test, X_test, W_test, noise_test,Z = sim_func(seed=seed, ns=ns, d=5,
                                                                                 alpha_vec=np.array(
                                                                                     [0.05, 0.04, 0.03, 0.02,
                                                                                      0.01]) * 20,
                                                                                 alpha_0=0.05, beta_vec=np.array(
-            [0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b,misspecified=misspecified)
+            [0.1, 0.2, 0.3, 0.4, 0.5]) * beta, b=b,misspecified=misspecified)
 
     # X_0 = X_test[T_test.squeeze()==0,:]
     # X_1 = X_test[T_test.squeeze()==1,:]
@@ -115,9 +116,9 @@ def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,misspecified):
     x_ref_test= dr_c.tst_X
     tst_idx = dr_c.tst_idx
 
-    Y_1_true = intervene_func(X=x_ref_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b, T=1,
+    Y_1_true = intervene_func(X=x_ref_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * beta, b=b, T=1,
                                                noise=noise_test[tst_idx],Z=Z[tst_idx] if Z is not None else Z)
-    Y_0_true = intervene_func(X=x_ref_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05, b=b, T=0,
+    Y_0_true = intervene_func(X=x_ref_test, beta_vec=np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * beta, b=b, T=0,
                                                noise=noise_test[tst_idx],Z=Z[tst_idx] if Z is not None else Z)
 
     L = dr_c.L_ker
@@ -143,11 +144,11 @@ def calculate_and_simulate(seed,ns,b,sim_func,intervene_func,misspecified):
 seeds = [1,2,3,4,5]
 n_list = [100,250,500,1000,2000,5000]
 ms = [False, True]
-b_list = [0.5]
+b_list = [0.0,0.5]
 funcs = [['mean',generate_observational_stuff_1,generate_interventional_stuff_1],['distributional',generate_observational_stuff_2,generate_interventional_stuff_2]]
 
 if __name__ == '__main__':
-    fn_name='expectation_experiments_fixed_references'
+    fn_name='expectation_experiments_fixed_weights'
     if not os.path.exists(f'{fn_name}.csv'):
         params = list(itertools.product(seeds, n_list, ms, b_list, funcs))
         raw_data = []

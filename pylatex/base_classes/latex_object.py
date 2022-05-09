@@ -165,7 +165,7 @@ class LatexObject(metaclass=_CreatePackages):
             The name of the file (without .tex)
         """
 
-        with open(filepath + '.tex', 'mis', encoding='utf-8') as newf:
+        with open(filepath + '.tex', mode='w', encoding='utf-8') as newf:
             self.dump(newf)
 
     def dumps_packages(self):

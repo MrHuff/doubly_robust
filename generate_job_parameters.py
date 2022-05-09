@@ -243,10 +243,9 @@ def generate_all_gpu_baselines():
     bvec=[0.0,0.01,0.025,0.05,0.1]
     Dvec=[5]
     Nvec=[500,5000]
-    dsl = ['unit_test',
+    dsl = [
+
           'conditions_satisfied',
-          'banana',
-          'sin',
           'robin',
         'distributions',
         'distributions_uniform',
@@ -269,7 +268,7 @@ def generate_all_gpu_baselines():
     generate_parameters(f'all_gpu_baselines_3',ds,bvec,Dvec,Nvec,methods,nn_params)
     methods=['doubly_robust_correct_sampling']
     generate_parameters(f'all_gpu_baselines_4',ds,bvec,Dvec,Nvec,methods,nn_params)
-    methods=['doubly_robust_correct','baseline','doubly_robust','doubly_robust_correct_sampling']
+    methods=['doubly_robust_correct','baseline','doubly_robust','baseline_correct']
     generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
     
 
@@ -281,7 +280,7 @@ def generate_all_gpu_baselines():
           'conditions_satisfied_type_1',
         'distributions_type_1',
                 ]
-    methods=['doubly_robust_correct','baseline_correct','baseline','doubly_robust','doubly_robust_correct_sampling']
+    methods=['doubly_robust_correct','baseline_correct','baseline','doubly_robust']
     generate_parameters_type_1(f'type_1',ds,bvec,Dvec,Nvec,methods,nn_params)
 
 if __name__ == '__main__':

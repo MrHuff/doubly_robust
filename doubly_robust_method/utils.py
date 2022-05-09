@@ -174,7 +174,9 @@ class testing_class():
         tst_Y =torch.from_numpy(self.tst_Y).float().to(self.training_params['device'])
 
         #Fix the regression formula such that it takes to account the "wrong" treatment as well
-        embedding_0=self.L_ker(Y_test,tst_Y) *  ((1-T_test).t() * (1./e).t()) - (( (1-T_test)-e)/e).t()*kme_0.get_embedding(Y_test,tst_X_cont)
+        T_test_0 = 1-T_test
+        e_0 = 1-e
+        embedding_0=self.L_ker(Y_test,tst_Y) *  (T_test_0.t() * (1./e_0).t()) - ((T_test_0-e_0)/e_0).t()*kme_0.get_embedding(Y_test,tst_X_cont)
         mu_0 = embedding_0.mean(1)
         embedding_1=self.L_ker(Y_test,tst_Y) *(T_test.t() *(1./e).t()) - ((T_test-e)/e).t()*kme_1.get_embedding(Y_test,tst_X_cont)
         mu_1 = embedding_1.mean(1)
@@ -375,7 +377,9 @@ class baseline_test_class(testing_class):
         tst_Y =torch.from_numpy(self.tst_Y).float().to(self.training_params['device'])
 
         #Fix the regression formula such that it takes to account the "wrong" treatment as well
-        embedding_0 = self.L_ker(Y_test, tst_Y) * ((1 - T_test).t() * (1. / e).t())  #- (( (1-T_test)-e)/e).unsqueeze(0)*kme_0.get_embedding(tst_X_cont,Y_test)
+        T_test_0 = 1-T_test
+        e_0 = 1-e
+        embedding_0 = self.L_ker(Y_test, tst_Y) * (T_test_0.t() * (1. / e_0).t())  #- (( (1-T_test)-e)/e).unsqueeze(0)*kme_0.get_embedding(tst_X_cont,Y_test)
         mu_0 = embedding_0.mean(1)
         embedding_1=self.L_ker(Y_test,tst_Y) *(T_test.t() *(1./e).t()) #- ((T_test-e)/e).unsqueeze(0)*kme_1.get_embedding(tst_X_cont,Y_test)
         mu_1 = embedding_1.mean(1)

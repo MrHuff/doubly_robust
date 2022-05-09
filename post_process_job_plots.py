@@ -151,10 +151,10 @@ def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005
 
                 # plt.figure(figsize=(15,15))
                 plt.hlines(0.05, 0,subset_3['b'].max())
-                plt.legend('', frameon=False)
+                # plt.legend('', frameon=False)
                 # plt.legend(prop={'size': 10})
-                plt.xlabel(r'$\beta_{TY}$')
-                plt.ylabel('Power')
+                plt.xlabel(r'$\beta_{TY}$',fontsize=15)
+                plt.ylabel('Rejection rate',fontsize=15)
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
                 plt.clf()
@@ -183,9 +183,9 @@ def type_1_plot(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
                 # plt.figure(figsize=(15,15))
                 plt.hlines(0.05, 0,subset_3['b'].max())
                 # plt.legend(prop={'size': 10})
-                plt.legend('', frameon=False)
-                plt.xlabel(r'$\beta_{XY}$')
-                plt.ylabel('Power')
+                # plt.legend('', frameon=False)
+                plt.xlabel(r'$\beta_{XY}$',fontsize=15)
+                plt.ylabel('Rejection rate',fontsize=15)
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
                 plt.clf()
@@ -215,7 +215,7 @@ def gpu_post_process(fold_name,df):
 #
 
 def plot_1(df):
-    list_of_stuff=['ep-baselinecorrect','ep-doublyrobustcorrect-dcme']+['doubleml','vanilla-dr','gformula','tmle','ipw','cf','bart','wmmd']
+    list_of_stuff=['ep-doublyrobustcorrect-dcme']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart','wmmd']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     plot_2_est_weights(dir=f'plot_1',big_df=subset_df,
@@ -239,7 +239,7 @@ def plot_1a(df):
 def plot_histograms(df,savedir,ds_list):
     if not os.path.exists(savedir):
         os.makedirs(savedir)
-    list_of_stuff =['ep-doublyrobustcorrect-dcme','ep-baselinecorrect']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
+    list_of_stuff =['ep-doublyrobustcorrect-dcme','ep-baselinecorrect','ep-baseline']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
     mask = df['mname'].apply(lambda x: x in list_of_stuff ).values
     subset_df=df[mask]
     for ds in ds_list:
@@ -250,12 +250,12 @@ def plot_histograms(df,savedir,ds_list):
                 power = round(row['pval_005'].tolist()[0],3)
 
                 big_df=pd.read_csv(row['final_res_path'].tolist()[0])
-                sns.histplot(big_df,x='pval',bins=20)
+                sns.histplot(big_df,x='pval',bins=25)
                 if 'null' in ds:
-                    plt.suptitle(f'KS test p-val: {ks_val}, Size (level=0.05): {power}')
+                    plt.suptitle(f'KS test p-val: {ks_val}, Rejection rate (level=0.05): {power}',fontsize=15)
                 else:
-                    plt.suptitle(f'Power (level=0.05): {power}')
-                plt.savefig(f'{savedir}/{ds}_{l}.png',bbox_inches = 'tight')
+                    plt.suptitle(f'Rejection rate (level=0.05): {power}',fontsize=15)
+                plt.savefig(f'{savedir}/{l}_{ds}.png',bbox_inches = 'tight')
                 plt.clf()
             except Exception as e:
                 print(e)
@@ -322,6 +322,21 @@ def generate_latex(dir,filename_func,n_list=[500,5000],ds_names=[
                 counter = 0
     doc.generate_tex()
 
+def get_dataset_table(df):
+    df = df.drop(['index','tp','final_res_path'], axis=1)
+    mask = df['neural_cme'].values
+    df = df[~mask]
+    mask_2 = df['dataset'].isin(['twins_5000','twins_5000_null']).values
+    df = df[~mask_2]
+
+    df = pd.melt(df, id_vars=['dataset', 'mname'], value_vars=['pval_001', 'pval_005', 'pval_01',
+                                                          'KS_pval', 'KS_stat'])
+    df['value'] = df['value'].apply(lambda x: round(x,3))
+
+    df = df.pivot(index=["dataset", "variable"], columns=["mname"], values="value")
+    return df
+
+
 if __name__ == '__main__':
     """
     GPU - postprocessing
@@ -337,45 +352,49 @@ if __name__ == '__main__':
     #     'distributions_gamma',
     #     ])
 
-    #Expectations
+    # Expectations
     # generate_latex('ex_exp', lambda dir, i, j: f'{dir}/fig_{i}_{j}.png', n_list=['False', 'True'],
     #                ds_names=[
-    #                    'distributional_0',
     #                    'mean_0',
+    #                    'mean_1',
+    #                    'distributional_0',
+    #                    'distributional_1',
     #                ]
     #                )
 
 
 
-    # type_1_path ='type_1'
-    # type_1_df = get_job_df(type_1_path)
-    # type_1_plot_maker(type_1_df)
+    type_1_path ='type_1'
+    type_1_df = get_job_df(type_1_path)
+    type_1_plot_maker(type_1_df)
     # #
     # #
-    # job_path='all_gpu_baselines_2'
-    # df_gpu = get_job_df(job_path)
-    # job_path='all_gpu_baselines_3'
-    # df_gpu_2 = get_job_df(job_path)
-    # # job_path='all_gpu_baselines_4'
-    # # df_gpu_3 = get_job_df(job_path)
-    # job_path = 'all_cpu_baselines'
-    # df_cpu = get_job_df(job_path)
-    # df = pd.concat([df_gpu,df_gpu_2,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
-    # df['b']=df['b'].apply(lambda x: float(x))
-    # new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
-    # plot_1(new_df)
-    # plot_1a(new_df)
-    # plot_2(new_df)
-    # plot_2a(new_df)
+    job_path='all_gpu_baselines_2'
+    df_gpu = get_job_df(job_path)
+    job_path='all_gpu_baselines_3'
+    df_gpu_2 = get_job_df(job_path)
+    # job_path='all_gpu_baselines_4'
+    # df_gpu_3 = get_job_df(job_path)
+    job_path = 'all_cpu_baselines'
+    df_cpu = get_job_df(job_path)
+    df = pd.concat([df_gpu,df_gpu_2,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
+    df['b']=df['b'].apply(lambda x: float(x))
+    new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
+    plot_1(new_df)
     #
     job_path='all_gpu_real'
     df_gpu = get_job_df_real(job_path)
     job_path = 'all_cpu_real'
     df_cpu = get_job_df_real(job_path)
     df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
+
     plot_3(df)
     plot_4(df)
     plot_5(df)
+
+    df_filter = get_dataset_table(df)
+    df_filter.to_csv("real_jobs.csv")
+
     # generate_latex('type_1_plot',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png',ds_names=['conditions_satisfied_type_one','distributions_type_one'])
 
 
@@ -396,13 +415,13 @@ if __name__ == '__main__':
     #     ])
     # generate_latex('plot_2',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
     # generate_latex('plot_2a',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png')
-    list_of_stuff = ['ep-doublyrobustcorrect-dcme']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
-    # generate_latex('plot_3',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
-    generate_latex('plot_lalonde',lambda dir,i,j:f'{dir}/{i}_{j}.png',['lalonde_100','lalonde_100_null'],list_of_stuff)
-    generate_latex('plot_twins',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
-    generate_latex('plot_inspire',lambda dir,i,j:f'{dir}/{j}_{i}.png',['ep-doublyrobustcorrect-dcme'],['inspire_1000','inspire_1000_null'])
-
-
+    # list_of_stuff = ['ep-doublyrobustcorrect-dcme']+['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
+    # # generate_latex('plot_3',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
+    # generate_latex('plot_lalonde',lambda dir,i,j:f'{dir}/{i}_{j}.png',['lalonde_100','lalonde_100_null'],list_of_stuff)
+    # generate_latex('plot_twins',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
+    generate_latex('plot_inspire',lambda dir,i,j:f'{dir}/{j}_{i}.png',['inspire_1000','inspire_1000_null'],['ep-doublyrobustcorrect-dcme','ep-baseline','ep-baselinecorrect'])
+    #
+    #
 
 
 

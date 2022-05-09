@@ -8,7 +8,7 @@ from vanilla_doublyrobust_baseline.vanilla_dr import calculate_pval_symmetric
 class tmle_baseline_test():
     def __init__(self,X,T,Y,n_bootstraps):
         X=X[:, ~(X == X[0, :]).all(0)]
-        X = X[:,:40] #prevent numerical overflows
+        X = X[:,:25] #prevent numerical overflows
         self.n,self.d=X.shape
         columns=[f'x_{i}' for i in range(self.d)] + ['Y']+['D']
         self.cov_string =''

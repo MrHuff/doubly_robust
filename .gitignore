@@ -4,6 +4,7 @@ notes/gformulakerneltest.pdf
 *.png
 *.dta
 *.npy
+*.pdf
 *.pickle
 *.pkl
 g_env/*
