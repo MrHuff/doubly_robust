@@ -6,9 +6,10 @@ import pickle
 import itertools
 
 if __name__ == '__main__':
-    bvec=[0.0,0.01,0.02,0.03,0.04,0.05,0.1,0.5,1.,2.,3.]
+    # bvec=[0.0,0.01,0.02,0.03,0.04,0.05,0.1,0.5,1.,2.,3.]
+    bvec=[0.1,0.5,1.,2.,3.]
     Dvec=[5]
-    Nvec=[500,5000]
+    Nvec=[5000]
     p_list = list(itertools.product(bvec,Dvec,Nvec))
 
     gen_list = [
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     for (generator_function,base_config,name) in zip(gen_list,base_list,name_list):
         for (b,D,N) in p_list:
             post_fix = f'beta={b}_D={D}_{N}'
-            job_name = 'datasets/'+f'{name}_type_1/'+post_fix
+            job_name = 'datasets/'+f'{name}_type_two/'+post_fix
             if not os.path.exists(job_name):
                 os.makedirs(job_name)
             SEEDS=100

@@ -4,7 +4,7 @@ from torch.utils.data.dataset import Dataset
 from pycox.preprocessing.feature_transforms import *
 import torch
 from sklearn import metrics
-
+from sklearn.linear_model import LogisticRegressionCV
 def categorical_transformer(X,cat_cols,cont_cols):
     c = OrderedCategoricalLong()
     for el in cat_cols:
@@ -196,6 +196,24 @@ class classifier_binary(torch.nn.Module):
 
     def predict(self,x_cov,x_cat=[]):
         return torch.sigmoid(self.final_layer(self.covariate_net((x_cov,x_cat))))
+
+
+class sklearn_propensity_estimator():
+    def __init__(self, X_tr, T_tr, X_val, T_val, nn_params, bs=100, epochs=100, device='cuda:0', X_cat_tr=[],
+                 X_cat_val=[]):
+        self.X  = X_tr
+        self.T  = T_tr.squeeze()
+        self.clf = LogisticRegressionCV(cv=10, random_state=0,verbose=False)
+        self.X_val = X_val
+        self.T_val = T_val.squeeze()
+        self.device = device
+    def fit(self,tmp=None):
+        self.clf.fit(self.X,self.T)
+        self.best = self.clf.score(self.X_val,self.T_val)
+
+    def predict(self,X,T=[],x_cat=[]):
+        return torch.from_numpy(self.clf.predict_proba(X)[:,-1]).float().to(self.device).unsqueeze(-1)
+
 
 class propensity_estimator():
     def __init__(self,X_tr,T_tr,X_val,T_val,nn_params,bs=100,epochs=100,device='cuda:0',X_cat_tr=[],X_cat_val=[]):

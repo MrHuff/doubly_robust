@@ -55,6 +55,7 @@ def get_job_df(job_path):
         try:
             experiment_params = load_obj(j, folder=f'{job_path}/')
             j = j.replace('type_1', 'type_one')
+            j = j.replace('strong_2', 'strong_two')
             method=experiment_params['test_type']
             ow=experiment_params['training_params']['oracle_weights']
             dek=experiment_params['training_params']['double_estimate_kme']
@@ -151,7 +152,7 @@ def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005
 
                 # plt.figure(figsize=(15,15))
                 plt.hlines(0.05, 0,subset_3['b'].max())
-                # plt.legend('', frameon=False)
+                plt.legend('', frameon=False)
                 # plt.legend(prop={'size': 10})
                 plt.xlabel(r'$\beta_{TY}$',fontsize=15)
                 plt.ylabel('Rejection rate',fontsize=15)
@@ -168,24 +169,27 @@ def type_1_plot(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
             subset = df[df['D']==d]
             for n in nlist:
                 subset_2 = subset[subset['n'] == n]
+                plt.figure(figsize=(10, 4))
                 for col_index,method in enumerate(methods):
                     try:
                         subset_3 = subset_2[subset_2['mname']==method].sort_values(['b'],ascending=True).reset_index()
                         a,b,e = calc_error_bars(subset_3[tname],alpha=0.05,num_samples=100)
-                        plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
-                        # plt.plot('beta_xy','p_a=0.05',data=subset_3,linestyle='-',label=rf'{format_string}',c = col_dict[method])
 
+                        plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
+                        # plt.plot('b',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}',color=sns.color_palette()[col_index+2])
+                        # plt.fill_between(subset_3['b'], a, b, alpha=0.1,color=sns.color_palette()[col_index+2])
                         plt.fill_between(subset_3['b'], a, b, alpha=0.1)
                     except Exception as e:
                         print('whoopsie')
                     # plt.fill_between(subset_3['beta_xy'], a, b, alpha=0.1,color=col_dict[method])
 
-                # plt.figure(figsize=(15,15))
                 plt.hlines(0.05, 0,subset_3['b'].max())
-                # plt.legend(prop={'size': 10})
-                # plt.legend('', frameon=False)
-                plt.xlabel(r'$\beta_{XY}$',fontsize=15)
-                plt.ylabel('Rejection rate',fontsize=15)
+                plt.legend(prop={'size': 10})
+                labels = subset_3['b'].unique().tolist()
+                plt.xticks(labels,labels)
+                plt.legend('', frameon=False)
+                plt.xlabel(r'$\beta_{XY}$',fontsize=18)
+                plt.ylabel('Rejection rate',fontsize=18)
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
                 plt.clf()
@@ -244,6 +248,7 @@ def plot_histograms(df,savedir,ds_list):
     subset_df=df[mask]
     for ds in ds_list:
         for l in list_of_stuff:
+            plt.figure(figsize=(10,5))
             try:
                 row = subset_df[(subset_df['mname']==l) &(subset_df['dataset']==ds)]
                 ks_val=round(row['KS_pval'].tolist()[0],3)
@@ -274,10 +279,17 @@ def plot_5(df): #Inspire
 
 
 def type_1_plot_maker(subset_df):
-    type_1_plot(dir=f'type_1_plot',big_df=subset_df,
+    subset_df['b'] = subset_df['b'].apply(lambda  x: float(x))
+    type_1_plot(dir=f'type_1_plot_b',big_df=subset_df[subset_df['b']>=0.1],
                        d_list=subset_df['D'].unique().tolist(),
-                       methods=subset_df['mname'].unique().tolist(),
-                       nlist=subset_df['n'].unique().tolist(),
+                       methods=['ep-baselinecorrect', 'ep-doublyrobustcorrect-dcme'],#,subset_df['mname'].unique().tolist(),
+                       nlist=['5000'],
+                       data_list=subset_df['dataset'].unique().tolist()
+                       )
+    type_1_plot(dir=f'type_1_plot',big_df=subset_df[subset_df['b']<0.1],
+                       d_list=subset_df['D'].unique().tolist(),
+                       methods=['ep-baselineincorrect','ep-baseline', 'ep-baselinecorrect'],#,subset_df['mname'].unique().tolist(),
+                       nlist=['5000'],
                        data_list=subset_df['dataset'].unique().tolist()
                        )
 
@@ -366,34 +378,55 @@ if __name__ == '__main__':
 
     type_1_path ='type_1'
     type_1_df = get_job_df(type_1_path)
+    type_1_df = type_1_df[type_1_df['mname']!='ep-doublyrobustcorrect-dcme']
+    type_1_df_2 = get_job_df('type_two')
+
+    type_1_df = pd.concat([type_1_df,type_1_df_2],axis=0).reset_index(drop=True)
+    type_1_df['dataset'] = type_1_df['dataset'].apply(lambda x: x.replace('two','one'))
     type_1_plot_maker(type_1_df)
     # #
     # #
-    job_path='all_gpu_baselines_2'
-    df_gpu = get_job_df(job_path)
-    job_path='all_gpu_baselines_3'
-    df_gpu_2 = get_job_df(job_path)
-    # job_path='all_gpu_baselines_4'
-    # df_gpu_3 = get_job_df(job_path)
-    job_path = 'all_cpu_baselines'
-    df_cpu = get_job_df(job_path)
-    df = pd.concat([df_gpu,df_gpu_2,df_cpu],axis=0).reset_index().drop(["index"], axis=1)
-    df['b']=df['b'].apply(lambda x: float(x))
-    new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
-    plot_1(new_df)
+    # job_path='all_gpu_baselines_2'
+    # df_gpu = get_job_df(job_path)
+    # job_path='all_gpu_baselines_3'
+    # df_gpu_2 = get_job_df(job_path)
+    # job_path = 'all_cpu_baselines'
+    # df_cpu = get_job_df(job_path)
+    # job_path='all_gpu_baselines_strong_2'
+    # df_gpu_strong = get_job_df(job_path)
+    # job_path = 'all_cpu_baselines_strong_2'
+    # df_cpu_strong = get_job_df(job_path)
+    # df = pd.concat([df_gpu,df_gpu_2,df_gpu_strong,df_cpu,df_cpu_strong],axis=0).reset_index().drop(["index"], axis=1)
+    # df['b']=df['b'].apply(lambda x: float(x))
+    # new_df = df[df['n'].isin(['500','5000'])].reset_index().drop(["index"], axis=1)
+    # plot_1(new_df)
+
+
+    # job_path='all_gpu_baselines_strong_2'
+    # df_gpu = get_job_df(job_path)
+    # job_path = 'all_cpu_baselines_strong_2'
+    # df_cpu = get_job_df(job_path)
+    # plot_1(df_cpu)
+    # df = pd.concat([df_cpu,df_gpu],axis=0).reset_index().drop(["index"], axis=1)
+    # df['b']=df['b'].apply(lambda x: float(x))
+    # new_df = df.reset_index().drop(["index"], axis=1)
     #
-    job_path='all_gpu_real'
-    df_gpu = get_job_df_real(job_path)
-    job_path = 'all_cpu_real'
-    df_cpu = get_job_df_real(job_path)
-    df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
+    # plot_1(new_df)
 
-    plot_3(df)
-    plot_4(df)
-    plot_5(df)
 
-    df_filter = get_dataset_table(df)
-    df_filter.to_csv("real_jobs.csv")
+    # #
+    # job_path='all_gpu_real'
+    # df_gpu = get_job_df_real(job_path)
+    # job_path = 'all_cpu_real'
+    # df_cpu = get_job_df_real(job_path)
+    # df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
+    #
+    # plot_3(df)
+    # plot_4(df)
+    # plot_5(df)
+    #
+    # df_filter = get_dataset_table(df)
+    # df_filter.to_csv("real_jobs.csv")
 
     # generate_latex('type_1_plot',lambda dir,i,j:f'{dir}/{j}_figure_5_{i}.png',ds_names=['conditions_satisfied_type_one','distributions_type_one'])
 
@@ -419,7 +452,7 @@ if __name__ == '__main__':
     # # generate_latex('plot_3',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
     # generate_latex('plot_lalonde',lambda dir,i,j:f'{dir}/{i}_{j}.png',['lalonde_100','lalonde_100_null'],list_of_stuff)
     # generate_latex('plot_twins',lambda dir,i,j:f'{dir}/{i}_{j}.png',['twins_2500','twins_2500_null'],list_of_stuff)
-    generate_latex('plot_inspire',lambda dir,i,j:f'{dir}/{j}_{i}.png',['inspire_1000','inspire_1000_null'],['ep-doublyrobustcorrect-dcme','ep-baseline','ep-baselinecorrect'])
+    # generate_latex('plot_inspire',lambda dir,i,j:f'{dir}/{j}_{i}.png',['inspire_1000','inspire_1000_null'],['ep-doublyrobustcorrect-dcme','ep-baseline','ep-baselinecorrect'])
     #
     #
 

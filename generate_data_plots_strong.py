@@ -36,7 +36,7 @@ if __name__ == '__main__':
     Dvec=[5]
     Nvec=[500,5000]
     p_list = list(itertools.product(bvec,Dvec,Nvec))
-
+    confounding_fac=1.0
     gen_list = [
         case_1,
         case_distributional,
@@ -55,7 +55,7 @@ if __name__ == '__main__':
          'd': 0,
          'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 35,
          'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * confounding_fac,  # Confounding
          'noise_var': 0.1,
          'b': 0
          },
@@ -64,7 +64,7 @@ if __name__ == '__main__':
            'd': 0,
            'alpha_vec': np.array([0.05, 0.04, 0.03, 0.02, 0.01]) * 10,
            'alpha_0': 0.05,  # 0.05,
-           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
+           'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * confounding_fac,  # Confounding
            'noise_var': 0.1,
            'b': 0
            },
@@ -76,7 +76,7 @@ if __name__ == '__main__':
          # the thing just blows up regardless of what you do?!
          # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
          'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * confounding_fac,  # Confounding
          'noise_var': 0.1,
          'b': 0
          }]*7 + [
@@ -87,7 +87,7 @@ if __name__ == '__main__':
                    # the thing just blows up regardless of what you do?!
                    # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
                    'alpha_0': -1.5,  # 0.05,
-                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 3,  # Confounding
+                   'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * confounding_fac,  # Confounding
                    'noise_var': 0.1,
                    'b': 0
                    }]
@@ -105,8 +105,9 @@ if __name__ == '__main__':
 
     for (generator_function,base_config,name) in zip(gen_list,base_list,name_list):
         for (b,D,N) in p_list:
-            if name in ['distributions_middle_ground','distributions','distributions_uniform','distributions_gamma']:
-                b=b*10
+            # if name in ['distributions_middle_ground','distributions','distributions_uniform','distributions_gamma']:
+            b=b*10
+            print(b)
             post_fix = f'b={b}_D={D}_{N}'
             job_name = 'datasets/'+f'{name}_strong/'+post_fix
             if not os.path.exists(job_name):

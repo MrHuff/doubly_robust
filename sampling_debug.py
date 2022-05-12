@@ -22,36 +22,37 @@ def debug_plot_treatments(T,Y):
     plt.show()
 
 def debug_different_models(X,T,Y):
-    c_1 = vanilla_dr_baseline_test(X,T,Y,n_bootstraps=250)
-    pval,stat=c_1.permutation_test()
-    print(pval,stat)
-    c_2 = gformula_baseline_test(X, T, Y, n_bootstraps=250)
-    pval, stat = c_2.permutation_test()
-    print(pval,stat)
-    #
-    #
+    # c_1 = vanilla_dr_baseline_test(X,T,Y,n_bootstraps=250)
+    # pval,stat=c_1.permutation_test()
+    # print(pval,stat)
+    # c_2 = gformula_baseline_test(X, T, Y, n_bootstraps=250)
+    # pval, stat = c_2.permutation_test()
+    # print(pval,stat)
+    # #
+    # #
     c_3 = iptw_baseline_test(X, T, Y, n_bootstraps=250)
     pval, stat = c_3.permutation_test()
     print(pval,stat)
-    #
+    # #
     c_4 = tmle_baseline_test(X, T, Y, n_bootstraps=250)
     pval, stat = c_4.permutation_test()
     print(pval,stat)
 
 
-    c_6 = BART_baseline_test(X, T, Y,bootstrap=250)
-    pval, stat = c_6.permutation_test()
-    print(pval,stat)
-
-
-
-    c7=WMMDTest(X,T,Y,device='cuda:0',n_permute=250)
-    pval,stat=c7.permutation_test()
-    print(pval,stat)
+    # c_6 = BART_baseline_test(X, T, Y,bootstrap=250)
+    # pval, stat = c_6.permutation_test()
+    # print(pval,stat)
+    #
+    #
+    #
+    # c7=WMMDTest(X,T,Y,device='cuda:0',n_permute=250)
+    # pval,stat=c7.permutation_test()
+    # print(pval,stat)
 if __name__ == '__main__':
     s=0
     D=5
-    b=1.0
+    b=5
+    confounding_strength=3.0
     base_config = {'seed': 0,
          'ns': 5000,
          'd': 5,
@@ -59,14 +60,16 @@ if __name__ == '__main__':
          # the thing just blows up regardless of what you do?!
          # np.array([0.05,0.04,0.03,0.02,0.01]),#np.random.randn(5)*0.05, #np.array([0.05,0.04,0.03,0.02,0.01]),
          'alpha_0': 0.05,  # 0.05,
-         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) * 0.05,  # Confounding
+         'beta_vec': np.array([0.1, 0.2, 0.3, 0.4, 0.5]) *confounding_strength,  # Confounding
          'noise_var': 0.1,
          'b': b
          }
     T, Y, X, w_true = case_distributional(**base_config)
+    print(np.mean(Y[T==1]) - np.mean(Y[T==0]))
+
     debug_plot_weights(T,w_true)
     debug_plot_treatments(T,Y)
-    # debug_different_models(X,T,Y)
+    debug_different_models(X,T,Y)
     # print(T.shape)
     # print(X.shape)
     # print(Y.shape)

@@ -5,7 +5,7 @@ import os
 if __name__ == '__main__':
     #    methods=['doubly_robust_correct','baseline','doubly_robust']
     # dataset=  'distributions'
-    fold = 'all_gpu_real'
+    fold = 'type_two'
     jobs = os.listdir(fold)
     jobs.sort()
     # print(jobs)
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     #                                          'neural_net_parameters': {'layers_x': [16, 8], 'cat_size_list': [], 'dropout': 0.0, 'transformation': torch.tanh, 'output_dim': 25},
     #                                          'approximate_inverse': False, 'neural_cme': False},
     #                      'cat_cols': [], 'test_type': 'doubly_robust_correct', 'debug_mode': False}
-    print(len(jobs))
+    # print(len(jobs))
     for i,job in enumerate(jobs):
         experiment_params = load_obj(job,folder=f'{fold}/')
         # print(experiment_params)

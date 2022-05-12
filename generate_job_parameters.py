@@ -45,7 +45,7 @@ def get_dir_name_type_1(dir_name,b,D,N):
 def generate_parameters_type_1(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
     oracle_weights =[False]
-    double_estimate_kme=[False,True]
+    double_estimate_kme=[True]
     neural_cmes=[False]
     train_prop=[True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
@@ -98,7 +98,7 @@ def generate_parameters_type_1(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_param
 def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
     oracle_weights =[False]
-    double_estimate_kme=[False,True]
+    double_estimate_kme=[True]
     neural_cmes=[False]
     train_prop=[True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
@@ -106,13 +106,11 @@ def generate_parameters(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
     if not os.path.exists(f'{job_dir}'):
         os.makedirs(f'{job_dir}')
 
-    dl = ['distributions','distributions_uniform','distributions_gamma','distributions_middle_ground']
-    dist_list = dl+[el+'_strong' for el in dl]
 
     for dir_name in dir_names:
         for (method, oracle_weight, de_kme, neural_cme, tp) in p_list:
             for (b,D,N) in num_list:
-                if dir_name in dist_list:
+                if 'strong_two' in dir_name:
                     b=b*10
                 if method in ['baseline', 'baseline_correct']:
                     de_kme=False
@@ -160,7 +158,7 @@ def generate_parameters_real_datasets(job_dir,dir_names,methods,nn_params,ds_dir
     # methods=['doubly_robust','doubleml']
     # methods=['doubleml','vanilla_dr','gformula','tmle','ipw','cf','bart']
     oracle_weights =[False]
-    double_estimate_kme=[False,True]
+    double_estimate_kme=[True]
     neural_cmes=[False]
     train_prop=[True]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
@@ -212,17 +210,15 @@ def generate_all_cpu_baselines():
     bvec=[0.0,0.01,0.025,0.05,0.1]
     Dvec=[5]
     Nvec=[500,5000]
-    dsl = ['unit_test',
+    dsl = [
           'conditions_satisfied',
-          'banana',
-          'sin',
           'robin',
         'distributions',
         'distributions_uniform',
         'distributions_gamma',
-        'nonlinear_treatment',
                 ]
-    ds = dsl+[el+'_strong' for el in dsl]
+    ds = [el+'_strong_two' for el in dsl]
+    # ds = dsl+[el+'_strong_2' for el in dsl]
 
     ds_real = [
         'twins_2500',
@@ -231,8 +227,8 @@ def generate_all_cpu_baselines():
         'lalonde_100_null',
     ]
     methods = ['vanilla_dr', 'gformula', 'tmle', 'ipw', 'doubleml','cf','bart']
-    generate_parameters(f'all_cpu_baselines',ds,bvec,Dvec,Nvec,methods=methods,nn_params=nn_params)
-    generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods,nn_params=nn_params,ds_dir='real_cpu')
+    generate_parameters(f'all_cpu_baselines_strong_2',ds,bvec,Dvec,Nvec,methods=methods,nn_params=nn_params)
+    # generate_parameters_real_datasets(f'all_cpu_real',ds_real,methods,nn_params=nn_params,ds_dir='real_cpu')
 
 def generate_all_gpu_baselines():
     if not os.path.exists('all_gpu_baselines_2'):
@@ -252,7 +248,8 @@ def generate_all_gpu_baselines():
         'distributions_gamma',
         'nonlinear_treatment',
                 ]
-    ds = dsl+[el+'_strong' for el in dsl]
+    ds = [el+'_strong_two' for el in dsl]
+    # ds = dsl+[el+'_strong_2' for el in dsl]
     ds_real = [
         'twins_2500',
         'twins_2500_null',
@@ -263,25 +260,30 @@ def generate_all_gpu_baselines():
         'inspire_1000',
         'inspire_1000_null',
     ]
-    # methods = ['doubly_robust','wmmd','baseline','baseline_correct']
-    methods=['doubly_robust_correct']
-    generate_parameters(f'all_gpu_baselines_3',ds,bvec,Dvec,Nvec,methods,nn_params)
-    methods=['doubly_robust_correct_sampling']
-    generate_parameters(f'all_gpu_baselines_4',ds,bvec,Dvec,Nvec,methods,nn_params)
-    methods=['doubly_robust_correct','baseline','doubly_robust','baseline_correct']
-    generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
-    
+    # methods = ['doubly_robust_correct','wmmd','baseline','baseline_correct']
+    methods = ['doubly_robust_correct','wmmd']
+    generate_parameters(f'all_gpu_baselines_strong_2',ds,bvec,Dvec,Nvec,methods,nn_params)
 
 
-    bvec=[0.0,0.01,0.02,0.03,0.04,0.05,0.1,0.5,1.,2.,3.]
+    # methods=['doubly_robust_correct']
+    # generate_parameters(f'all_gpu_baselines_3',ds,bvec,Dvec,Nvec,methods,nn_params)
+    # methods=['doubly_robust_correct_sampling']
+    # generate_parameters(f'all_gpu_baselines_4',ds,bvec,Dvec,Nvec,methods,nn_params)
+    # methods=['doubly_robust_correct','baseline','doubly_robust','baseline_correct']
+    # generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
+    #
+    #
+    #
+    # bvec=[0.0,0.01,0.02,0.03,0.04,0.05,0.1,0.5,1.,2.,3.]
+    bvec=[0.1,0.5,1.,2.,3.]
     Dvec=[5]
-    Nvec=[500,5000]
+    Nvec=[5000]
     ds = [
-          'conditions_satisfied_type_1',
-        'distributions_type_1',
+          'conditions_satisfied_type_two',
+        'distributions_type_two',
                 ]
-    methods=['doubly_robust_correct','baseline_correct','baseline','doubly_robust']
-    generate_parameters_type_1(f'type_1',ds,bvec,Dvec,Nvec,methods,nn_params)
+    methods=['doubly_robust_correct']
+    generate_parameters_type_1(f'type_two',ds,bvec,Dvec,Nvec,methods,nn_params)
 
 if __name__ == '__main__':
     generate_all_cpu_baselines()

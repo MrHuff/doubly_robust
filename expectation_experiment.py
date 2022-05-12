@@ -17,6 +17,7 @@ sns.set()
 from matplotlib import rc
 import tqdm
 rc("text", usetex=False)
+# sns.set(rc={'figure.figsize':(6,2)})
 
 PI = np.pi
 
@@ -179,7 +180,8 @@ if __name__ == '__main__':
                     mask = (mean_mse["mis"] == mis) & (mean_mse['data type'] == f_s)
                     mask = mask.values
                     subset = mean_mse[mask]
-                    g=sns.relplot(x="n", y="MSE", hue="variable", style="b", kind="line", data=subset)
+                    # plt.figure(figsize=(15, 5))
+                    g=sns.relplot(x="n", y="MSE", hue="variable", style="b", kind="line", data=subset,height=3,aspect=1.5)
                     g._legend.remove()
                     plt.savefig(f'{fn_name}_plots/fig_{mis}_{f_s}_{i}.png', bbox_inches ='tight')
                     plt.clf()

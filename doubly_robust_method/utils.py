@@ -216,7 +216,11 @@ class testing_class_correct(testing_class):
             self.train_e = torch.from_numpy(self.tr_W).float()
             self.val_e = torch.from_numpy(self.val_W).float()
         else:
-            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+            # self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+            #                                        self.val_T, nn_params=self.nn_params,
+            #                                        bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+            #                                        X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+            self.classifier = sklearn_propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
                                                    self.val_T, nn_params=self.nn_params,
                                                    bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
                                                    X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
@@ -413,6 +417,33 @@ class baseline_test_class_correct(baseline_test_class):
         return output+perm_stats.tolist()
 
 
+class baseline_test_class_incorrect(baseline_test_class):
+    def __init__(self,X,T,Y,W,nn_params,training_params,cat_cols=[]):
+        super(baseline_test_class_incorrect, self).__init__(X,T,Y,W,nn_params,training_params,cat_cols=cat_cols)
+
+    def run_test(self,seed):
+        #train classifier
+
+        if self.training_params['oracle_weights']:
+            self.e = torch.from_numpy(self.tst_W)
+        else:
+            self.classifier = propensity_estimator(self.tr_X_cont, self.tr_T, self.val_X_cont,
+                                                   self.val_T, nn_params=self.nn_params,
+                                                   bs=self.training_params['bs'], X_cat_val=self.val_X_cat,
+                                                   X_cat_tr=self.tr_X_cat, epochs=self.training_params['epochs'])
+
+            self.classifier.fit(self.training_params['patience'])
+            print('classifier val auc: ', self.classifier.best)
+            self.e = self.classifier.predict(self.tst_X,self.tst_T,self.tst_X_cat)
+            self.e = torch.nan_to_num(self.e, nan=0.5, posinf=0.5)
+
+        self.test=baseline_test_gpu_incorrect_og(self.tst_Y,e=self.e,T=self.tst_T,permutations=self.training_params['permutations'])
+        perm_stats,self.tst_stat = self.test.permutation_test()
+        self.perm_stats = perm_stats
+        self.pval = self.calculate_pval_symmetric(self.perm_stats,self.tst_stat )
+        output = [seed,self.pval,self.tst_stat]
+        return output+perm_stats.tolist()
+
 class baseline_double_ml(testing_class):
     def __init__(self, X, T, Y, W, nn_params, training_params, cat_cols=[]):
         super(baseline_double_ml, self).__init__(X, T, Y, W, nn_params, training_params, cat_cols=cat_cols)
@@ -585,6 +616,9 @@ class experiment_object:
                 tst = baseline_test_class(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='baseline_correct':
                 tst = baseline_test_class_correct(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
+            elif self.test_type == 'baseline_incorrect':
+                tst = baseline_test_class_incorrect(X=X, Y=Y, T=T, W=W, nn_params=self.nn_params,
+                                                  training_params=self.training_params, cat_cols=self.cat_cols)
             elif self.test_type=='wmmd':
                 tst = baseline_WMMD(X=X,Y=Y,T=T,W=W,nn_params=self.nn_params,training_params=self.training_params,cat_cols=self.cat_cols)
             elif self.test_type=='doubleml':
