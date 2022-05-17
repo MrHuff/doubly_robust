@@ -64,9 +64,12 @@ def produce_plot(i,ax,keyword_1,keyword,cov_name):
     # plt.clf()
 
 if __name__ == '__main__':
-    keywords_1 = ['context_dim','domain_shift','recommendation_size','item_size','sample_size','user_size']
-    keywords = ['context_dim','multiplier','n_reco','num_items','sample_size','num_users']
-    cov_names  = ['Dimension of Covariates','Multiplier','Number of Recommended Items','Number of Items','Number of Observations','Number of Users']
+    # keywords_1 = ['context_dim','domain_shift','recommendation_size','item_size','sample_size','user_size']
+    keywords_1 = ['domain_shift','context_dim','item_size','user_size','recommendation_size','sample_size']
+    # keywords = ['context_dim','multiplier','n_reco','num_items','sample_size','num_users']
+    keywords = ['multiplier','context_dim','num_items','num_users','n_reco','sample_size']
+    # cov_names  = ['Dimension of Covariates','Multiplier','Number of Recommended Items','Number of Items','Number of Observations','Number of Users']
+    cov_names  = ['Multiplier','Dimension of Covariates','Number of Items','Number of Users','Number of Recommended Items','Number of Observations']
     fig, axes = plt.subplots(nrows=2, ncols=3,figsize=(18, 6))
 
     for i,(a,b,c) in enumerate(zip(keywords_1,keywords,cov_names)):
