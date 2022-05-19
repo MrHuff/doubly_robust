@@ -154,8 +154,10 @@ def plot_2_est_weights(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005
                 plt.hlines(0.05, 0,subset_3['b'].max())
                 plt.legend('', frameon=False)
                 # plt.legend(prop={'size': 10})
-                plt.xlabel(r'$\beta_{TY}$',fontsize=15)
-                plt.ylabel('Rejection rate',fontsize=15)
+                plt.xticks(fontsize=25)
+                plt.yticks(fontsize=25)
+                plt.xlabel(r'$\beta_{TY}$',fontsize=25)
+                plt.ylabel('Rejection rate',fontsize=25)
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
                 plt.clf()
@@ -185,11 +187,13 @@ def type_1_plot(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
 
                 plt.hlines(0.05, 0,subset_3['b'].max())
                 plt.legend(prop={'size': 10})
-                labels = subset_3['b'].unique().tolist()
-                plt.xticks(labels,labels)
+
                 plt.legend('', frameon=False)
-                plt.xlabel(r'$\beta_{XY}$',fontsize=18)
-                plt.ylabel('Rejection rate',fontsize=18)
+                labels = subset_3['b'].unique().tolist()
+                plt.xticks(labels,fontsize=25)
+                plt.yticks(fontsize=25)
+                plt.xlabel(r'$\beta_{XY}$',fontsize=25)
+                plt.ylabel('Rejection rate',fontsize=25)
                 plt.savefig(f'{dir}/{dataset}_figure_{d}_{n}.png',bbox_inches = 'tight',
             pad_inches = 0.05)
                 plt.clf()
@@ -257,9 +261,13 @@ def plot_histograms(df,savedir,ds_list):
                 big_df=pd.read_csv(row['final_res_path'].tolist()[0])
                 sns.histplot(big_df,x='pval',bins=25)
                 if 'null' in ds:
-                    plt.suptitle(f'KS test p-val: {ks_val}, Rejection rate (level=0.05): {power}',fontsize=15)
+                    plt.suptitle(f'KS test p-val: {ks_val}, Rejection rate (level=0.05): {power}',fontsize=25)
                 else:
-                    plt.suptitle(f'Rejection rate (level=0.05): {power}',fontsize=15)
+                    plt.suptitle(f'Rejection rate (level=0.05): {power}',fontsize=25)
+                plt.xticks(fontsize=25)
+                plt.yticks(fontsize=25)
+                plt.xlabel('P-value',fontsize=25)
+                plt.ylabel('Count',fontsize=25)
                 plt.savefig(f'{savedir}/{l}_{ds}.png',bbox_inches = 'tight')
                 plt.clf()
             except Exception as e:
@@ -376,14 +384,14 @@ if __name__ == '__main__':
 
 
 
-    type_1_path ='type_1'
-    type_1_df = get_job_df(type_1_path)
-    type_1_df = type_1_df[type_1_df['mname']!='ep-doublyrobustcorrect-dcme']
-    type_1_df_2 = get_job_df('type_two')
-
-    type_1_df = pd.concat([type_1_df,type_1_df_2],axis=0).reset_index(drop=True)
-    type_1_df['dataset'] = type_1_df['dataset'].apply(lambda x: x.replace('two','one'))
-    type_1_plot_maker(type_1_df)
+    # type_1_path ='type_1'
+    # type_1_df = get_job_df(type_1_path)
+    # type_1_df = type_1_df[type_1_df['mname']!='ep-doublyrobustcorrect-dcme']
+    # type_1_df_2 = get_job_df('type_two')
+    #
+    # type_1_df = pd.concat([type_1_df,type_1_df_2],axis=0).reset_index(drop=True)
+    # type_1_df['dataset'] = type_1_df['dataset'].apply(lambda x: x.replace('two','one'))
+    # type_1_plot_maker(type_1_df)
     # #
     # #
     # job_path='all_gpu_baselines_2'
@@ -415,16 +423,16 @@ if __name__ == '__main__':
 
 
     # #
-    # job_path='all_gpu_real'
-    # df_gpu = get_job_df_real(job_path)
+    job_path='all_gpu_real_fix_table'
+    df = get_job_df_real(job_path)
     # job_path = 'all_cpu_real'
     # df_cpu = get_job_df_real(job_path)
     # df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
-    #
-    # plot_3(df)
-    # plot_4(df)
-    # plot_5(df)
-    #
+
+    plot_3(df)
+    plot_4(df)
+    plot_5(df)
+
     # df_filter = get_dataset_table(df)
     # df_filter.to_csv("real_jobs.csv")
 

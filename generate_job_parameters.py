@@ -253,13 +253,13 @@ def generate_all_gpu_baselines():
     ds_real = [
         'twins_2500',
         'twins_2500_null',
-        'twins_5000',
-        'twins_5000_null',
         'lalonde_100',
         'lalonde_100_null',
         'inspire_1000',
         'inspire_1000_null',
     ]
+    methods=['doubly_robust_correct']
+    generate_parameters_real_datasets(f'all_gpu_real_fix_table',ds_real,methods,nn_params)
     # methods = ['doubly_robust_correct','wmmd','baseline','baseline_correct']
     methods = ['doubly_robust_correct','wmmd']
     generate_parameters(f'all_gpu_baselines_strong_2',ds,bvec,Dvec,Nvec,methods,nn_params)
@@ -270,7 +270,7 @@ def generate_all_gpu_baselines():
     # methods=['doubly_robust_correct_sampling']
     # generate_parameters(f'all_gpu_baselines_4',ds,bvec,Dvec,Nvec,methods,nn_params)
     # methods=['doubly_robust_correct','baseline','doubly_robust','baseline_correct']
-    # generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
+    generate_parameters_real_datasets(f'all_gpu_real',ds_real,methods,nn_params)
     #
     #
     #

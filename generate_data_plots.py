@@ -17,9 +17,13 @@ def debug_plot_weights(savedir,plt_name,T,w_true):
     L.get_texts()
     print(L)
     plt.legend('', frameon=False)
+    g.set_ylabel('Count',fontsize=20)
+    g.set_xlabel('Propensity score',fontsize=20)
+    g.set_yticklabels([int(f) for f in g.get_yticks()], size=15)
+    g.set_xticklabels([round(f,1) for f in g.get_xticks()], size=15)
+
     # print(g)
     # g._legend.remove()
-
     plt.savefig(f'{savedir}/{plt_name}_weights.png',bbox_inches = 'tight',
             pad_inches = 0.05)
     plt.clf()
@@ -31,8 +35,11 @@ def debug_plot_treatments(savedir,plt_name,T,Y):
     L.get_texts()
     print(L)
     plt.legend('', frameon=False)
-    plt.legend('', frameon=False)
     # g._legend.remove()
+    g.set_ylabel('Count',fontsize=20)
+    g.set_xlabel('Y',fontsize=20)
+    g.set_yticklabels([int(f) for f in g.get_yticks()], size=15)
+    g.set_xticklabels([round(f,1) for f in g.get_xticks()], size=15)
 
     plt.savefig(f'{savedir}/{plt_name}_y.png',bbox_inches = 'tight',
             pad_inches = 0.05)

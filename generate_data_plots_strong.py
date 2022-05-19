@@ -7,27 +7,9 @@ import itertools
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from generate_data_plots import debug_plot_weights,debug_plot_treatments
 sns.set()
 
-def debug_plot_weights(savedir,plt_name,T,w_true):
-    df = pd.DataFrame(np.concatenate([T,w_true],axis=1),columns=['T','prob'])
-    g=sns.histplot(data=df,x='prob',hue='T',bins=50)
-    # g._legend.remove()
-    plt.legend('', frameon=False)
-
-    plt.savefig(f'{savedir}/{plt_name}_weights.png',bbox_inches = 'tight',
-            pad_inches = 0.05)
-    plt.clf()
-
-def debug_plot_treatments(savedir,plt_name,T,Y):
-    df = pd.DataFrame(np.concatenate([T,Y],axis=1),columns=['T','Y'])
-    g=sns.histplot(data=df,x='Y',hue='T',bins=50)
-    # g._legend.remove()
-    plt.legend('', frameon=False)
-
-    plt.savefig(f'{savedir}/{plt_name}_y.png',bbox_inches = 'tight',
-            pad_inches = 0.05)
-    plt.clf()
 
 if __name__ == '__main__':
     if not os.path.exists('data_plot_dir_strong'):

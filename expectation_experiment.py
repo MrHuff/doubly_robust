@@ -183,6 +183,10 @@ if __name__ == '__main__':
                     # plt.figure(figsize=(15, 5))
                     g=sns.relplot(x="n", y="MSE", hue="variable", style="b", kind="line", data=subset,height=3,aspect=1.5)
                     g._legend.remove()
+                    g.set_ylabels('MSE ($\Vert \mu_{Y(t)} - \hat{\mu}_{Y(t)} \Vert^2$)', fontsize=15)
+                    g.set_xlabels('n observations', fontsize=15)
+
+
                     plt.savefig(f'{fn_name}_plots/fig_{mis}_{f_s}_{i}.png', bbox_inches ='tight')
                     plt.clf()
 

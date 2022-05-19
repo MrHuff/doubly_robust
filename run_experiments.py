@@ -5,7 +5,7 @@ import os
 if __name__ == '__main__':
     #    methods=['doubly_robust_correct','baseline','doubly_robust']
     # dataset=  'distributions'
-    fold = 'type_two'
+    fold = 'all_gpu_real_fix_table'
     jobs = os.listdir(fold)
     jobs.sort()
     # print(jobs)
