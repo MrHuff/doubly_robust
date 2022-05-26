@@ -44,6 +44,16 @@ PI = np.pi
 #
 #     return p
 
+
+def fisher_example(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):
+    np.random.seed(seed)
+    X = bernoulli.rvs(0.5*np.ones(ns))
+    Prob_vec = 0.25+X/4
+    T = bernoulli.rvs(Prob_vec)
+    Y = bernoulli.rvs(0.5+b*(2*X-1)*T)
+    YY = Y[:, np.newaxis]
+    return T[:, np.newaxis], YY, X[:, np.newaxis], Prob_vec.squeeze()[:, np.newaxis]
+
 def case_0(seed, ns, d, alpha_vec, alpha_0, beta_vec, noise_var, b):  # krik paper case 1,2
     np.random.seed(seed)
     X = np.random.randn(ns, d)

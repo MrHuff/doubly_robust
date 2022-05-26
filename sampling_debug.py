@@ -51,7 +51,7 @@ def debug_different_models(X,T,Y):
 if __name__ == '__main__':
     s=0
     D=5
-    b=5
+    b=0.25
     confounding_strength=3.0
     base_config = {'seed': 0,
          'ns': 5000,
@@ -64,7 +64,7 @@ if __name__ == '__main__':
          'noise_var': 0.1,
          'b': b
          }
-    T, Y, X, w_true = case_distributional(**base_config)
+    T, Y, X, w_true = fisher_example(**base_config)
     print(np.mean(Y[T==1]) - np.mean(Y[T==0]))
 
     debug_plot_weights(T,w_true)

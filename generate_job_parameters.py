@@ -44,10 +44,10 @@ def get_dir_name_type_1(dir_name,b,D,N):
 
 def generate_parameters_type_1(job_dir,dir_names,bvec,Dvec,Nvec,methods,nn_params):
     num_list = list(itertools.product(bvec, Dvec, Nvec))
-    oracle_weights =[False]
-    double_estimate_kme=[True]
+    oracle_weights =[True]
+    double_estimate_kme=[False]
     neural_cmes=[False]
-    train_prop=[True]
+    train_prop=[False]
     p_list = list(itertools.product(methods,oracle_weights,double_estimate_kme,neural_cmes,train_prop))
 
     if not os.path.exists(f'{job_dir}'):
@@ -284,6 +284,16 @@ def generate_all_gpu_baselines():
                 ]
     methods=['doubly_robust_correct']
     generate_parameters_type_1(f'type_two',ds,bvec,Dvec,Nvec,methods,nn_params)
+
+    bvec=[0.25]
+    Dvec=[1]
+    Nvec=[100,500,1000,2000,5000,7500,10000]
+    ds = [
+          'fisher_example',
+                ]
+    methods=['baseline_correct']
+    generate_parameters_type_1(f'fisher_jobs',ds,bvec,Dvec,Nvec,methods,nn_params)
+
 
 if __name__ == '__main__':
     generate_all_cpu_baselines()

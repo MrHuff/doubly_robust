@@ -198,7 +198,33 @@ def type_1_plot(dir,big_df,d_list,methods,nlist,data_list,tname='pval_005'):
             pad_inches = 0.05)
                 plt.clf()
 
+def fisher_plot(dir,big_df,methods,data_list,tname='pval_005'):
+    if not os.path.exists(dir):
+        os.makedirs(dir)
+    for dataset in data_list:
+        subset_3 = big_df[big_df['dataset']==dataset].sort_values(['n'],ascending=True).reset_index()
+        plt.figure(figsize=(10, 5))
+        for col_index,method in enumerate(methods):
+            try:
+                a,b,e = calc_error_bars(subset_3[tname],alpha=0.05,num_samples=100)
+                plt.plot('n',tname,data=subset_3,linestyle='--', marker='o',label=rf'{method}')
+                plt.fill_between(subset_3['n'], a, b, alpha=0.1)
+            except Exception as e:
+                print('whoopsie')
+        plt.hlines(0.05, 0,subset_3['n'].max())
+        plt.legend(prop={'size': 10})
 
+        plt.legend('', frameon=False)
+        labels = subset_3['n'].unique().tolist()
+        plt.xticks(labels,fontsize=25)
+        plt.xticks(rotation=45)  # Rotates X-Axis Ticks by 45-degrees
+
+        plt.yticks(fontsize=25)
+        plt.xlabel(r'$n$',fontsize=25)
+        plt.ylabel('Rejection rate',fontsize=25)
+        plt.savefig(f'{dir}/{dataset}_figure.png',bbox_inches = 'tight',
+    pad_inches = 0.05)
+        plt.clf()
 
 def gpu_post_process(fold_name,df):
     mask_ow = df['mname'].apply(lambda x: 'ow' in x).values
@@ -285,6 +311,14 @@ def plot_4(df): #Lalonde
 def plot_5(df): #Inspire
     plot_histograms(df,'plot_inspire',['inspire_1000','inspire_1000_null'])
 
+
+def fisher_plot_maker(subset_df):
+    subset_df['n'] = subset_df['n'].apply(lambda  x: float(x))
+
+    fisher_plot(dir=f'fisher_plots',big_df=subset_df,
+                       methods=subset_df['mname'].unique().tolist(),
+                       data_list=subset_df['dataset'].unique().tolist()
+                       )
 
 def type_1_plot_maker(subset_df):
     subset_df['b'] = subset_df['b'].apply(lambda  x: float(x))
@@ -388,10 +422,15 @@ if __name__ == '__main__':
     # type_1_df = get_job_df(type_1_path)
     # type_1_df = type_1_df[type_1_df['mname']!='ep-doublyrobustcorrect-dcme']
     # type_1_df_2 = get_job_df('type_two')
-    #
     # type_1_df = pd.concat([type_1_df,type_1_df_2],axis=0).reset_index(drop=True)
     # type_1_df['dataset'] = type_1_df['dataset'].apply(lambda x: x.replace('two','one'))
     # type_1_plot_maker(type_1_df)
+
+    fisher_path ='fisher_jobs'
+    fisher_path_df = get_job_df(fisher_path)
+    fisher_plot_maker(fisher_path_df)
+
+
     # #
     # #
     # job_path='all_gpu_baselines_2'
@@ -423,15 +462,15 @@ if __name__ == '__main__':
 
 
     # #
-    job_path='all_gpu_real_fix_table'
-    df = get_job_df_real(job_path)
+    # job_path='all_gpu_real_fix_table'
+    # df = get_job_df_real(job_path)
     # job_path = 'all_cpu_real'
     # df_cpu = get_job_df_real(job_path)
     # df = pd.concat([df_gpu,df_cpu],axis=0).reset_index()
 
-    plot_3(df)
-    plot_4(df)
-    plot_5(df)
+    # plot_3(df)
+    # plot_4(df)
+    # plot_5(df)
 
     # df_filter = get_dataset_table(df)
     # df_filter.to_csv("real_jobs.csv")
